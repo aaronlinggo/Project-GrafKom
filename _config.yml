@@ -1,0 +1,4 @@
+theme: jekyll-theme-leap-day
+
+include:
+  - node_modules
