@@ -3,7 +3,8 @@
 
 const color_lantern = 0xf04e03;
 const color_sun = 0x994a0e;
-const color_fog = 0xf59042;
+// const color_sun = 0xc46c29;
+const color_fog = 0xd8b88d;
 const speed = 200;
 const pointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
@@ -148,7 +149,7 @@ const tilesRoughnessMap = textureLoader.load(
 
 var plane = new THREE.PlaneGeometry(50, 100, 25, 25);
 var planeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x957b56,
+    color: 0x61523c,
     map: tilesBaseColor,
     normalMap: tilesNormalMap,
     displacementMap: tilesHeightMap,
@@ -163,18 +164,8 @@ planeMesh.position.set(0, 0, 0);
 planeMesh.rotation.x -= Math.PI / 2;
 scene.add(planeMesh);
 
-var ambient = new THREE.AmbientLight(0x404040);
+var ambient = new THREE.AmbientLight(0x404040, 1.5);
 scene.add(ambient);
-
-var addDirectionalLight = function (scene, color, x, y, z) {
-    var directionalLight = new THREE.DirectionalLight(color);
-    directionalLight.position.set(x, y, z);
-    directionalLight.target.position.set(0, 0, 0);
-    directionalLight.target.updateMatrixWorld();
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
-    scene.add(new THREE.DirectionalLightHelper(directionalLight));
-};
 
 var pointLight1 = new THREE.PointLight(color_lantern);
 pointLight1.position.set(-17.5, 2.5, -28.5);
@@ -187,7 +178,7 @@ pointLight1.add(
     )
 );
 pointLight1.castShadow = true;
-pointLight1.shadow.radius = 25;
+pointLight1.shadow.radius = 100;
 scene.add(pointLight1);
 scene.add(new THREE.PointLightHelper(pointLight1, 0.1, 0xff00ff));
 
@@ -202,7 +193,7 @@ pointLight2.add(
     )
 );
 pointLight2.castShadow = true;
-pointLight2.shadow.radius = 25;
+pointLight2.shadow.radius = 100;
 scene.add(pointLight2);
 scene.add(new THREE.PointLightHelper(pointLight2, 0.1, 0xff00ff));
 
@@ -217,7 +208,7 @@ pointLight3.add(
     )
 );
 pointLight3.castShadow = true;
-pointLight3.shadow.radius = 25;
+pointLight3.shadow.radius = 100;
 scene.add(pointLight3);
 scene.add(new THREE.PointLightHelper(pointLight3, 0.1, 0xff00ff));
 
@@ -232,11 +223,36 @@ pointLight4.add(
     )
 );
 pointLight4.castShadow = true;
-pointLight4.shadow.radius = 25;
+pointLight4.shadow.radius = 100;
 scene.add(pointLight4);
 scene.add(new THREE.PointLightHelper(pointLight4, 0.1, 0xff00ff));
 
-addDirectionalLight(scene, color_sun, 0, 40, 50);
+var addSpotLight = function (scene, color, x, y, z) {
+    // var directionalLight = new THREE.DirectionalLight(color, 2);
+    // directionalLight.position.set(x, y, z);
+    // directionalLight.target.position.set(0, 0, -25);
+    // directionalLight.target.updateMatrixWorld();
+    // directionalLight.castShadow = true;
+    // scene.add(directionalLight);
+    // scene.add(new THREE.DirectionalLightHelper(directionalLight));
+
+    var spotlight = new THREE.SpotLight(color, 8, 140, Math.PI/6);
+    spotlight.position.set(x, y, z);
+    spotlight.target.position.set(0, 0, 0);
+    spotlight.castShadow = true;
+    spotlight.add(
+        new THREE.Mesh(
+            new THREE.SphereGeometry(4, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0xd15e06,
+            })
+        )
+    );
+    scene.add(spotlight);
+    scene.add(new THREE.SpotLightHelper(spotlight));
+};
+
+addSpotLight(scene, color_sun, 0, 100, 46);
 
 // adding resizing event listener
 window.addEventListener("resize", () => {
@@ -357,8 +373,7 @@ let tourouMeshA, tourouGeometryA, tourouMaterialA;
 let tourouMeshB, tourouGeometryB, tourouMaterialB;
 let tourouMeshC, tourouGeometryC, tourouMaterialC;
 
-objectLoader.load(
-    "./dump/models/old_japanese_lantern/scene.gltf",
+objectLoader.load("./dump/models/old_japanese_lantern/scene.gltf",
     (gltf) => {
         const objectScene = gltf.scene;
 
@@ -376,9 +391,7 @@ objectLoader.load(
         tourouGeometryB = _tourouMeshB.children[0].geometry.clone();
         tourouGeometryC = _tourouMeshC.children[0].geometry.clone();
 
-        const defaultTransform = new THREE.Matrix4().multiply(
-            new THREE.Matrix4().makeScale(1.75, 1.75, 1.75)
-        );
+        const defaultTransform = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(1.75, 1.75, 1.75));
 
         tourouGeometryA.applyMatrix4(defaultTransform);
         tourouGeometryB.applyMatrix4(defaultTransform);
@@ -388,21 +401,9 @@ objectLoader.load(
         tourouMaterialB = _tourouMeshB.children[0].material;
         tourouMaterialC = _tourouMeshC.children[0].material;
 
-        tourouMeshA = new THREE.InstancedMesh(
-            tourouGeometryA,
-            tourouMaterialA,
-            tourouAmount
-        );
-        tourouMeshB = new THREE.InstancedMesh(
-            tourouGeometryB,
-            tourouMaterialB,
-            tourouAmount
-        );
-        tourouMeshC = new THREE.InstancedMesh(
-            tourouGeometryC,
-            tourouMaterialC,
-            tourouAmount
-        );
+        tourouMeshA = new THREE.InstancedMesh(tourouGeometryA, tourouMaterialA, tourouAmount);
+        tourouMeshB = new THREE.InstancedMesh(tourouGeometryB, tourouMaterialB, tourouAmount);
+        tourouMeshC = new THREE.InstancedMesh(tourouGeometryC, tourouMaterialC, tourouAmount);
 
         tourouMeshA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         tourouMeshB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -427,7 +428,7 @@ objectLoader.load(
     },
 
     (xhr) => {
-        console.log((xhr.loaded / xhr.total) * 100 + "% loaded!");
+        console.log((xhr.loaded / xhr.total * 100) + "% loaded!");
     },
 
     (error) => {
@@ -645,6 +646,7 @@ cube.position.set(-23, 3, 30);
 cube.rotation.y = Math.PI / 2;
 cube.castShadow = true;
 cube.receiveShadow = true;
+console.log(cube)
 scene.add( cube );
 
 const btn1 = new THREE.BoxGeometry( 0.1, 0.2, 0.2 );
