@@ -150,11 +150,12 @@ var dummy = new THREE.Object3D();
 var mesh;
 var gltfGeometry = new THREE.BufferGeometry();
 let loader3 = new THREE.GLTFLoader().load("./models/old_japanese_lantern/scene.gltf", (gltf) => {
-        obj1 = gltf.scene;
+        var obj1 = gltf.scene;
+        let material = new THREE.MeshLambertMaterial();
+
         // const box = new THREE.Box3().setFromObject(obj1);
         // const c = box.getCenter(new THREE.Vector3());
         // const size = box.getSize(new THREE.Vector3());
-        let material = new THREE.MeshNormalMaterial();
 
         // gltf.scene.traverse(function (child) {
         //     if (child.isMesh) {
@@ -166,17 +167,15 @@ let loader3 = new THREE.GLTFLoader().load("./models/old_japanese_lantern/scene.g
         //         material = child.material.clone();
         //     }
         // });
-
         // gltfGeometry.computeVertexNormals();
         // gltfGeometry.scale(4, 4, 4);
 
         // mesh = new THREE.InstancedMesh(gltfGeometry, material, 1);
         // mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         // scene.add(mesh);
-
         // animate();
 
-        console.log(dumpObject(obj1).join('\n'));
+        console.log(dumpObject(obj1).join("\n"));
 
         const _tourouA_mesh = obj1.getObjectByName("Tourou_a_low");
         const _tourouB_mesh = obj1.getObjectByName("Tourou_b_low");
@@ -190,9 +189,7 @@ let loader3 = new THREE.GLTFLoader().load("./models/old_japanese_lantern/scene.g
         tourouB_geometry = _tourouB_mesh.children[0].geometry.clone();
         tourouC_geometry = _tourouC_mesh.children[0].geometry.clone();
 
-        const defaultTransform = new THREE.Matrix4()
-            // .makeRotationX(Math.PI)
-            .multiply(new THREE.Matrix4().makeScale(2, 2, 2));
+        const defaultTransform = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(1.5, 1.5, 1.5));
 
         tourouA_geometry.applyMatrix4(defaultTransform);
         tourouB_geometry.applyMatrix4(defaultTransform);
@@ -202,9 +199,9 @@ let loader3 = new THREE.GLTFLoader().load("./models/old_japanese_lantern/scene.g
         tourouB_material = _tourouB_mesh.children[0].material;
         tourouC_material = _tourouC_mesh.children[0].material;
 
-        tourouA_mesh = new THREE.InstancedMesh(tourouA_geometry, tourouA_material, 16);
-        tourouB_mesh = new THREE.InstancedMesh(tourouB_geometry, tourouB_material, 16);
-        tourouC_mesh = new THREE.InstancedMesh(tourouC_geometry, tourouC_material, 16);
+        tourouA_mesh = new THREE.InstancedMesh(tourouA_geometry, tourouA_material, 4);
+        tourouB_mesh = new THREE.InstancedMesh(tourouB_geometry, tourouB_material, 4);
+        tourouC_mesh = new THREE.InstancedMesh(tourouC_geometry, tourouC_material, 4);
 
         tourouA_mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         tourouB_mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -219,11 +216,12 @@ let loader3 = new THREE.GLTFLoader().load("./models/old_japanese_lantern/scene.g
 
     // model loading
     function (xhr) {
-        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        console.log((xhr.loaded / xhr.total * 100) + "% loaded!");
     },
+
     // called when loading has errors
     function (error) {
-        console.log('An error happened');
+        console.log("Error has occured!");
     }
 );
 
@@ -231,29 +229,41 @@ function animate_2() {
     process_keyboard();
     requestAnimationFrame(animate_2);
 
-    // let time = clock.getDelta();
-    // const time = Date.now() * 0.001;
-    if (tourouA_mesh &&
-        tourouB_mesh &&
-        tourouC_mesh) {
-        // mesh.rotation.x = Math.sin(time / 4);
-        // mesh.rotation.y = Math.sin(time / 2);
-
-        let amount = 16;
-
+    if (tourouA_mesh && tourouB_mesh && tourouC_mesh) {
         let i = 0;
+        const amount = 4;
         const offset = (amount - 1) / 2;
+
+        let testArray = [];
+        testArray.push([-7.5, 0]);
+        testArray.push([-7.5, 21.5]);
+        testArray.push([7.5, 21.5]);
+        testArray.push([7.5, 0]);
+
+        let testArray1 = [];
+        testArray1.push(-7.5);
+        testArray1.push(-7.5);
+        testArray1.push(7.5);
+        testArray1.push(7.5);
+        let testArray2 = [];
+        testArray2.push(-1.5);
+        testArray2.push(21.5);
+        testArray2.push(21.5);
+        testArray2.push(-1.5);
+
+        // console.log(testArray[1][1]);
 
         for (let x = 0; x < amount; x++) {
             for (let y = 0; y < amount; y++) {
                 for (let z = 0; z < amount; z++) {
-                    dummy.position.set(0, 2, offset - z);
-                    // dummy.rotation.x = Math.PI;
                     dummy.castShadow = true;
                     dummy.receiveShadow = true;
-                    // dummy.scale.set(2, 2, 2);
+                    // let slot1 = testArray[i][0];
+                    // let slot2 = testArray[i][1];
+                    dummy.position.set(testArray1[i], 1.5, testArray2[i]);
                     // dummy.rotation.y = (Math.sin(x / 4 + time) + Math.sin(y / 4 + time) + Math.sin(z / 4 + time));
                     // dummy.rotation.z = dummy.rotation.y * 2;
+                    // dummy.scale.set(2, 2, 2);
                     dummy.updateMatrix();
                     tourouA_mesh.setMatrixAt(i, dummy.matrix);
                     tourouB_mesh.setMatrixAt(i, dummy.matrix);
@@ -264,56 +274,19 @@ function animate_2() {
             }
         }
 
-        tourouA_mesh.instanceMatrix.needsUpdate = false;
-        tourouB_mesh.instanceMatrix.needsUpdate = false;
-        tourouC_mesh.instanceMatrix.needsUpdate = false;
+        tourouA_mesh.matrixAutoUpdate = false;
+        tourouB_mesh.matrixAutoUpdate = false;
+        tourouC_mesh.matrixAutoUpdate = false;
+
+        // console.log(tourouA_mesh);
+
+        tourouA_mesh.instanceMatrix.needsUpdate = true;
+        tourouB_mesh.instanceMatrix.needsUpdate = true;
+        tourouC_mesh.instanceMatrix.needsUpdate = true;
     }
 
-    // mixer.update(clock.getDelta() * mixer.timeScale);
-    // controls.update(clock.getDelta())
     renderer.render(scene, cam);
 }
-
-// function animate() {
-//     requestAnimationFrame(animate);
-
-//     const time = Date.now() * 0.001;
-
-//     if (tourouA_mesh &&
-//         tourouB_mesh &&
-//         tourouC_mesh) {
-//         mesh.rotation.x = Math.sin(time / 4);
-//         mesh.rotation.y = Math.sin(time / 2);
-
-//         let amount = 10;
-
-//         let i = 0;
-//         const offset = (amount - 1) / 2;
-
-//         for (let x = 0; x < amount; x++) {
-//             for (let y = 0; y < amount; y++) {
-//                 for (let z = 0; z < amount; z++) {
-//                     dummy.position.set(offset - x, offset - y, offset - z);
-//                     dummy.rotation.y = (Math.sin(x / 4 + time) + Math.sin(y / 4 + time) + Math.sin(z / 4 + time));
-//                     dummy.rotation.z = dummy.rotation.y * 2;
-//                     dummy.updateMatrix();
-//                     mesh.setMatrixAt(i++, dummy.matrix);
-//                 }
-//             }
-//         }
-//         mesh.instanceMatrix.needsUpdate = true;
-//     }
-
-//     // mixer.update(clock.getDelta() * mixer.timeScale);
-
-//     // controls.update(clock.getDelta())
-
-//     renderer.render(scene, camera);
-// }
-
-
-
-
 
 
 
@@ -328,8 +301,8 @@ let loader1 = new THREE.GLTFLoader().load("./models/shitennoji/scene.gltf", (res
     });
     result.scene.position.set(0, -0.4, -18);
     result.scene.scale.set(0.0085, 0.0085, 0.0085);
-    // console.log(dumpObject(result.scene).join('\n'));
-    // scene.add(result.scene);
+    console.log(dumpObject(result.scene).join("\n"));
+    scene.add(result.scene);
 });
 
 let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scene.gltf", (result) => {
@@ -341,10 +314,10 @@ let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scen
     });
     result.scene.position.set(0, 0, 10);
     result.scene.rotation.y = -Math.PI / 2 * -1;
-    result.scene.rotation.x = -Math.PI;
+    // result.scene.rotation.x = -Math.PI;
     result.scene.scale.set(0.5, 0.5, 0.5);
-    // console.log(dumpObject(result.scene).join('\n'));
-    // scene.add(result.scene);
+    console.log(dumpObject(result.scene).join("\n"));
+    scene.add(result.scene);
 });
 
 // var gltfGeometry = new THREE.BufferGeometry();
@@ -391,7 +364,7 @@ let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scen
 //         }
 //     });
 //     gltf.scene.position.set(-c.x, size.y / 2 - c.y, -c.z); // center the gltf scene
-//     // console.log(dumpObject(gltf.scene).join('\n'));
+//     // console.log(dumpObject(gltf.scene).join("\n"));
 //     wall1.add(gltf.scene);
 //     // wall2.add(gltf.scene.clone());
 //     // wall3.add(gltf.scene.clone());
@@ -447,10 +420,10 @@ let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scen
 // // addInstancedMesh();
 // ------------------------------------------------------------------
 
-function dumpObject(obj, lines = [], isLast = true, prefix = '') {
-    const localPrefix = isLast ? '└─' : '├─';
-    lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
-    const newPrefix = prefix + (isLast ? '  ' : '│ ');
+function dumpObject(obj, lines = [], isLast = true, prefix = "") {
+    const localPrefix = isLast ? "└─" : "├─";
+    lines.push(`${prefix}${prefix ? localPrefix : ""}${obj.name || "*no-name*"} [${obj.type}]`);
+    const newPrefix = prefix + (isLast ? "  " : "│ ");
     const lastNdx = obj.children.length - 1;
     obj.children.forEach((child, ndx) => {
         const isLast = ndx === lastNdx;
