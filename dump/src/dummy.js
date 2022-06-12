@@ -1,3 +1,4 @@
+// var cam = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
 var cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
 cam.position.z = 50;
 cam.position.y = 4;
@@ -217,7 +218,7 @@ let loader1 = new THREE.GLTFLoader().load("./models/shitennoji/scene.gltf", (res
     });
     result.scene.position.set(0, -0.4, -18);
     result.scene.scale.set(0.0085, 0.0085, 0.0085);
-    scene.add(result.scene);
+    // scene.add(result.scene);
 });
 
 let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scene.gltf", (result) => {
@@ -230,7 +231,7 @@ let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scen
     result.scene.position.set(0, 0, 10);
     result.scene.rotation.y = -Math.PI / 2 * -1;
     result.scene.scale.set(0.5, 0.5, 0.5);
-    scene.add(result.scene);
+    // scene.add(result.scene);
 });
 
 let loader3 = new THREE.GLTFLoader();
@@ -283,6 +284,124 @@ modelBee2.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee2.position.set(24.4, 0, 29.53);
 modelBee2.rotation.y = Math.PI / 2; // radiant
 // scene.add(modelBee2);
+
+// let loader4 = new THREE.GLTFLoader().load("./models/modular_concrete_fence/scene3.gltf", (result) => {
+//     result.scene.traverse((node) => {
+//         if (node.isMesh) {
+//             node.castShadow = true;
+//             node.receiveShadow = true;
+//         }
+//     });
+//     result.scene.position.set(4.3, 0, 24.7);
+//     result.scene.rotation.y = -Math.PI / 2;
+//     result.scene.scale.set(0.025, 0.025, 0.025);
+//     scene.add(result.scene);
+// });
+
+
+var gltfGeometry = new THREE.BufferGeometry();
+var gltfMaterial = new THREE.MeshLambertMaterial({
+    color: 0xffffff
+});
+
+let loader4 = new THREE.GLTFLoader();
+const wall1 = new THREE.Object3D();
+const wall2 = new THREE.Object3D();
+const wall3 = new THREE.Object3D();
+loader4.load("./models/modular_concrete_fence/scene3.gltf", processWall);
+
+
+
+// let loader22 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scene.gltf", (result) => {
+//     result.scene.traverse((node) => {
+//         if (node.isMesh) {
+//             node.castShadow = true;
+//             node.receiveShadow = true;
+//         }
+//     });
+//     result.scene.position.set(0, 0, 10);
+//     result.scene.rotation.y = -Math.PI / 2 * -1;
+//     result.scene.scale.set(0.5, 0.5, 0.5);
+//     // scene.add(result.scene);
+// });
+
+function processWall(gltf) {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const c = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    gltf.scene.traverse((node) => {
+        if (node.isMesh) {
+            gltfGeometry = node;
+            // node.castShadow = true;
+            // node.receiveShadow = true;
+        }
+    });
+    gltf.scene.position.set(-c.x, size.y / 2 - c.y, -c.z); // center the gltf scene
+    console.log(dumpObject(gltf.scene).join('\n'));
+    wall1.add(gltf.scene);
+    wall2.add(gltf.scene.clone());
+    wall3.add(gltf.scene.clone());
+}
+
+let length1 = 4.3;
+let length2 = 8.4615;
+let length3 = length2 + (length2 - length1);
+
+
+var mesh = null;
+var dummy = new THREE.Object3D();
+var sectionWidth = 200;
+
+function addInstancedMesh() {
+    // An InstancedMesh of 4 cubes
+    mesh = new THREE.InstancedMesh(gltfGeometry, gltfMaterial, 3);
+    scene.add(mesh);
+    setInstancedMeshPositions(mesh);
+}
+
+function setInstancedMeshPositions(mesh) {
+    var changer = 0;
+    for (var i = 0; i < mesh.count; i++) {
+        // we add 200 units of distance (the width of the section) between each.
+        var xStaticPosition = -sectionWidth * (i - 1)
+        wall1.position.set(xStaticPosition + changer, 0, 0);
+        wall1.updateMatrix();
+        mesh.setMatrixAt(i, wall1.matrix);
+        changer += 5;
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+}
+
+
+wall1.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall1.position.set(4.3, 0, 24.7);
+wall1.rotation.y = -Math.PI / 2;
+scene.add(wall1);
+
+wall2.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall2.position.set(8.4615, 0, 24.7);
+wall2.rotation.y = -Math.PI / 2; // radiant
+// scene.add(wall2);
+
+wall3.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall3.position.set(length3, 0, 24.7);
+wall3.rotation.y = -Math.PI / 2; // radiant
+// scene.add(wall3);
+
+// addInstancedMesh();
+
+function dumpObject(obj, lines = [], isLast = true, prefix = '') {
+    const localPrefix = isLast ? '└─' : '├─';
+    lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
+    const newPrefix = prefix + (isLast ? '  ' : '│ ');
+    const lastNdx = obj.children.length - 1;
+    obj.children.forEach((child, ndx) => {
+        const isLast = ndx === lastNdx;
+        dumpObject(child, lines, isLast, newPrefix);
+    });
+    return lines;
+}
+
 
 // modelBee.scale.set(0.002, 0.002, 0.002); // because gltf.scene is very big
 // modelBee.position.set(2.4, 0.2, 0.5);
@@ -360,198 +479,6 @@ modelBee2.rotation.y = Math.PI / 2; // radiant
 //         console.error(error);
 //     })
 // }
-
-// let loader4 = new THREE.GLTFLoader().load("model/model_4/building_3_ramen_restaurant/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.025, 0.025, 0.025);
-//     result.scene.position.set(5, -0.1, -20);
-//     // result.scene.rotation.y = -Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader5 = new THREE.GLTFLoader().load("model/model_5/japan_house_restaurant_by_night/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.013, 0.013, 0.013);
-//     result.scene.position.set(13, -0.1, -17);
-//     // result.scene.rotation.y = -Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader6 = new THREE.GLTFLoader().load("model/model_6/quick_texture_building/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.position.set(-15, -0.1, -17);
-//     // result.scene.rotation.y = -Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader7 = new THREE.GLTFLoader().load("model/model_7/ramen_shop/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.position.set(-5, 0, -17);
-//     // result.scene.rotation.y = -Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader8 = new THREE.GLTFLoader().load("model/model_8/ramen-yatai/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.5, 0.5, 0.5);
-//     result.scene.position.set(-5, 0, 15);
-//     result.scene.rotation.y = Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader9 = new THREE.GLTFLoader().load("model/model_9/simple_textures/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.position.set(-20, -0.4, -10);
-//     // result.scene.rotation.y = Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader10 = new THREE.GLTFLoader().load("model/model_10/japanese_residential_home_02/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.01, 0.01, 0.01);
-//     result.scene.position.set(-22, -0.4, -4.5);
-//     // result.scene.rotation.y = Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader11 = new THREE.GLTFLoader().load("model/model_11/japan_book_store_low_poly/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(4, 4, 4);
-//     result.scene.position.set(-20, -0.4, 5);
-//     result.scene.rotation.y = Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader12 = new THREE.GLTFLoader().load("model/model_12/ichiraku_ramen/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(1.5, 1.5, 1.5);
-//     result.scene.position.set(-20, -0.4, 15);
-//     result.scene.rotation.y = Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader13 = new THREE.GLTFLoader().load("model/model_13/cornet_hut/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(1.5, 1.5, 1.5);
-//     result.scene.position.set(15, 3, 15);
-//     result.scene.rotation.y = Math.PI / 2;
-//     scene.add( result.scene );
-// });
-
-// let loader14 = new THREE.GLTFLoader().load("model/model_14/building_1_flower_shop/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.065, 0.065, 0.065);
-//     result.scene.position.set(15, -0.1, 5);
-//     result.scene.rotation.y = -Math.PI/2;
-//     scene.add( result.scene );
-// });
-
-// let loader15 = new THREE.GLTFLoader().load("model/model_15/lesson_8/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.008, 0.008, 0.008);
-//     result.scene.position.set(5, 1.5, 5);
-//     result.scene.rotation.y = -Math.PI/2;
-//     scene.add( result.scene );
-// });
-
-// let loader16 = new THREE.GLTFLoader().load("model/model_17/sushi__ramen_booth/scene.gltf", (result) => {
-//     result.scene.traverse( function( node ) {
-
-//         if ( node.isMesh ) { 
-//             node.castShadow = true; 
-//             node.receiveShadow = true; 
-//         }
-
-//     } );
-//     result.scene.scale.set(0.5, 0.5, 0.5);
-//     result.scene.position.set(-15, -0.7, 25);
-//     result.scene.rotation.y = -Math.PI/2;
-//     scene.add( result.scene );
-// });
 
 function animate() {
     // box.rotation.x += 0.01;

@@ -1,0 +1,547 @@
+{
+	"accessors": [
+		{
+			"bufferView": 0,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 216,
+			"max": [
+				0.3619160056114197,
+				0.26468899846076965,
+				0.3619160056114197
+			],
+			"min": [
+				-0.3619160056114197,
+				-1.0,
+				-0.3619160056114197
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 1,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 216,
+			"max": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"min": [
+				-1.0,
+				-1.0,
+				-1.0
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 216,
+			"max": [
+				1.0,
+				5.145366685610497e-06,
+				1.0,
+				1.0
+			],
+			"min": [
+				-1.0,
+				-3.549997018126305e-06,
+				-1.0,
+				1.0
+			],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 3,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 216,
+			"max": [
+				0.7842550277709961,
+				0.9570490121841431
+			],
+			"min": [
+				0.0026072401087731123,
+				0.007434779778122902
+			],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 4,
+			"byteOffset": 0,
+			"componentType": 5125,
+			"count": 480,
+			"type": "SCALAR"
+		},
+		{
+			"bufferView": 5,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 499,
+			"max": [
+				0.34952598810195923,
+				0.9032289981842041,
+				0.34952598810195923
+			],
+			"min": [
+				-0.34952598810195923,
+				0.26468899846076965,
+				-0.34952598810195923
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 6,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 499,
+			"max": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"min": [
+				-1.0,
+				-1.0,
+				-1.0
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 7,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 499,
+			"max": [
+				1.0,
+				0.10943983495235443,
+				1.0,
+				1.0
+			],
+			"min": [
+				-1.0,
+				-1.0,
+				-1.0,
+				1.0
+			],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 8,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 499,
+			"max": [
+				0.9932479858398438,
+				0.9912329912185669
+			],
+			"min": [
+				0.013092000037431717,
+				0.0073936800472438335
+			],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 9,
+			"byteOffset": 0,
+			"componentType": 5125,
+			"count": 1398,
+			"type": "SCALAR"
+		},
+		{
+			"bufferView": 10,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 62,
+			"max": [
+				0.06513439863920212,
+				1.0,
+				0.06513399630784988
+			],
+			"min": [
+				-0.06513430178165436,
+				0.90317302942276,
+				-0.065134696662426
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 11,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 62,
+			"max": [
+				0.9993446469306946,
+				1.0,
+				0.9993446469306946
+			],
+			"min": [
+				-0.9993446469306946,
+				-0.7484510540962219,
+				-0.9993446469306946
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 12,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 62,
+			"max": [
+				1.0,
+				0.19638213515281677,
+				1.0,
+				1.0
+			],
+			"min": [
+				-0.9998877048492432,
+				-0.19642841815948486,
+				-1.0,
+				1.0
+			],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 13,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 62,
+			"max": [
+				0.8142639994621277,
+				0.7673559784889221
+			],
+			"min": [
+				0.6514130234718323,
+				0.6414430141448975
+			],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 14,
+			"byteOffset": 0,
+			"componentType": 5125,
+			"count": 264,
+			"type": "SCALAR"
+		}
+	],
+	"asset": {
+		"extras": {
+			"author": "K (https://sketchfab.com/tanaka.ko91)",
+			"created": "Sun Jun 12 20:27:46 2022",
+			"license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+			"source": "https://sketchfab.com/3d-models/old-japanese-lantern-b6f3582d0a54412089e034706f882b5d",
+			"title": "Old Japanese Lantern"
+		},
+		"generator": "Gestaltor 2022.2.2 Tagliatelle Community",
+		"version": "2.0"
+	},
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 2592,
+			"byteOffset": 0,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 2592,
+			"byteOffset": 2592,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 3456,
+			"byteOffset": 5184,
+			"byteStride": 16,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 1728,
+			"byteOffset": 8640,
+			"byteStride": 8,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 1920,
+			"byteOffset": 10368,
+			"target": 34963
+		},
+		{
+			"buffer": 0,
+			"byteLength": 5988,
+			"byteOffset": 12288,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 5988,
+			"byteOffset": 18276,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 7984,
+			"byteOffset": 24264,
+			"byteStride": 16,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 3992,
+			"byteOffset": 32248,
+			"byteStride": 8,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 5592,
+			"byteOffset": 36240,
+			"target": 34963
+		},
+		{
+			"buffer": 0,
+			"byteLength": 744,
+			"byteOffset": 41832,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 744,
+			"byteOffset": 42576,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 992,
+			"byteOffset": 43320,
+			"byteStride": 16,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 496,
+			"byteOffset": 44312,
+			"byteStride": 8,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 1056,
+			"byteOffset": 44808,
+			"target": 34963
+		}
+	],
+	"buffers": [
+		{
+			"byteLength": 45864,
+			"uri": "scene_high.bin"
+		}
+	],
+	"images": [
+		{
+			"mimeType": "image/jpeg",
+			"uri": "textures/high_textures/default_baseColor.jpeg"
+		},
+		{
+			"mimeType": "image/png",
+			"uri": "textures/high_textures/default_metallicRoughness.png"
+		},
+		{
+			"mimeType": "image/png",
+			"uri": "textures/high_textures/default_normal.png"
+		}
+	],
+	"materials": [
+		{
+			"doubleSided": true,
+			"name": "default",
+			"normalTexture": {
+				"index": 2
+			},
+			"occlusionTexture": {
+				"index": 1
+			},
+			"pbrMetallicRoughness": {
+				"baseColorTexture": {
+					"index": 0
+				},
+				"metallicRoughnessTexture": {
+					"index": 1
+				}
+			}
+		}
+	],
+	"meshes": [
+		{
+			"name": "defaultMaterial",
+			"primitives": [
+				{
+					"attributes": {
+						"NORMAL": 1,
+						"POSITION": 0,
+						"TANGENT": 2,
+						"TEXCOORD_0": 3
+					},
+					"indices": 4,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		},
+		{
+			"name": "defaultMaterial",
+			"primitives": [
+				{
+					"attributes": {
+						"NORMAL": 6,
+						"POSITION": 5,
+						"TANGENT": 7,
+						"TEXCOORD_0": 8
+					},
+					"indices": 9,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		},
+		{
+			"name": "defaultMaterial",
+			"primitives": [
+				{
+					"attributes": {
+						"NORMAL": 11,
+						"POSITION": 10,
+						"TANGENT": 12,
+						"TEXCOORD_0": 13
+					},
+					"indices": 14,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		}
+	],
+	"nodes": [
+		{
+			"children": [
+				1
+			],
+			"matrix": [
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				2.220446049250313e-16,
+				-1.0,
+				0.0,
+				0.0,
+				1.0,
+				2.220446049250313e-16,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"name": "Sketchfab_model"
+		},
+		{
+			"children": [
+				2,
+				4,
+				6
+			],
+			"matrix": [
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				-4.371139006309476e-08,
+				0.9999999999999989,
+				0.0,
+				0.0,
+				-0.9999999999999989,
+				-4.371139006309476e-08,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"name": "Collada visual scene group"
+		},
+		{
+			"children": [
+				3
+			],
+			"name": "Tourou_c_low"
+		},
+		{
+			"mesh": 0,
+			"name": "defaultMaterial"
+		},
+		{
+			"children": [
+				5
+			],
+			"name": "Tourou_b_low"
+		},
+		{
+			"mesh": 1,
+			"name": "defaultMaterial"
+		},
+		{
+			"children": [
+				7
+			],
+			"name": "Tourou_a_low"
+		},
+		{
+			"mesh": 2,
+			"name": "defaultMaterial"
+		}
+	],
+	"samplers": [
+		{
+			"magFilter": 9729,
+			"minFilter": 9987,
+			"wrapS": 10497,
+			"wrapT": 10497
+		}
+	],
+	"scene": 0,
+	"scenes": [
+		{
+			"name": "Sketchfab_Scene",
+			"nodes": [
+				0
+			]
+		}
+	],
+	"textures": [
+		{
+			"sampler": 0,
+			"source": 0
+		},
+		{
+			"sampler": 0,
+			"source": 1
+		},
+		{
+			"sampler": 0,
+			"source": 2
+		}
+	]
+}
