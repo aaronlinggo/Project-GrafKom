@@ -1,14 +1,11 @@
-// import * as THREE from '../node_modules/three/build/three.module.js';
-// import { TextGeometry } from '../node_modules/three/examples/jsm/geometries/TextGeometry.js';
-
 const color_lantern = 0xf04e03;
 const color_sun = 0x994a0e;
 // const color_sun = 0xc46c29;
-const color_fog = 0xd8b88d;
 const speed = 200;
 const pointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 
+let color_fog = 0xd8b88d;
 let offsetY = 2.5;
 let moveForward = false;
 let moveBackward = false;
@@ -25,6 +22,8 @@ let delta;
 let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
 let startWebGL = false;
+
+let ctrDay = 0;
 
 let lamps = [true, true, true, true];
 
@@ -103,7 +102,7 @@ var scene = new THREE.Scene();
 // add fog
 fogColor = new THREE.Color(color_fog);
 scene.background = fogColor;
-scene.fog = new THREE.FogExp2(fogColor, 0.015);
+scene.fog = new THREE.FogExp2(fogColor, 0.011);
 
 var textureLoader = new THREE.TextureLoader();
 const tilesBaseColor = textureLoader.load(
@@ -147,7 +146,7 @@ const tilesRoughnessMap = textureLoader.load(
     }
 );
 
-var plane = new THREE.PlaneGeometry(50, 100, 25, 25);
+var plane = new THREE.PlaneGeometry(100, 100, 25, 25);
 var planeMaterial = new THREE.MeshStandardMaterial({
     color: 0x61523c,
     map: tilesBaseColor,
@@ -180,7 +179,7 @@ pointLight1.add(
 pointLight1.castShadow = true;
 pointLight1.shadow.radius = 100;
 scene.add(pointLight1);
-scene.add(new THREE.PointLightHelper(pointLight1, 0.1, 0xff00ff));
+// scene.add(new THREE.PointLightHelper(pointLight1, 0.1, 0xff00ff));
 
 var pointLight2 = new THREE.PointLight(color_lantern);
 pointLight2.position.set(-17.5, 2.5, 24.5);
@@ -195,7 +194,7 @@ pointLight2.add(
 pointLight2.castShadow = true;
 pointLight2.shadow.radius = 100;
 scene.add(pointLight2);
-scene.add(new THREE.PointLightHelper(pointLight2, 0.1, 0xff00ff));
+// scene.add(new THREE.PointLightHelper(pointLight2, 0.1, 0xff00ff));
 
 var pointLight3 = new THREE.PointLight(color_lantern);
 pointLight3.position.set(17.5, 2.5, 24.5);
@@ -210,7 +209,7 @@ pointLight3.add(
 pointLight3.castShadow = true;
 pointLight3.shadow.radius = 100;
 scene.add(pointLight3);
-scene.add(new THREE.PointLightHelper(pointLight3, 0.1, 0xff00ff));
+// scene.add(new THREE.PointLightHelper(pointLight3, 0.1, 0xff00ff));
 
 var pointLight4 = new THREE.PointLight(color_lantern);
 pointLight4.position.set(17.5, 2.5, -28.5);
@@ -225,34 +224,22 @@ pointLight4.add(
 pointLight4.castShadow = true;
 pointLight4.shadow.radius = 100;
 scene.add(pointLight4);
-scene.add(new THREE.PointLightHelper(pointLight4, 0.1, 0xff00ff));
+// scene.add(new THREE.PointLightHelper(pointLight4, 0.1, 0xff00ff));
 
-var addSpotLight = function (scene, color, x, y, z) {
-    // var directionalLight = new THREE.DirectionalLight(color, 2);
-    // directionalLight.position.set(x, y, z);
-    // directionalLight.target.position.set(0, 0, -25);
-    // directionalLight.target.updateMatrixWorld();
-    // directionalLight.castShadow = true;
-    // scene.add(directionalLight);
-    // scene.add(new THREE.DirectionalLightHelper(directionalLight));
-
-    var spotlight = new THREE.SpotLight(color, 8, 140, Math.PI/6);
-    spotlight.position.set(x, y, z);
-    spotlight.target.position.set(0, 0, 0);
-    spotlight.castShadow = true;
-    spotlight.add(
-        new THREE.Mesh(
-            new THREE.SphereGeometry(4, 32, 32),
-            new THREE.MeshBasicMaterial({
-                color: 0xd15e06,
-            })
-        )
-    );
-    scene.add(spotlight);
-    scene.add(new THREE.SpotLightHelper(spotlight));
-};
-
-addSpotLight(scene, color_sun, 0, 100, 46);
+var spotlight = new THREE.SpotLight(color_sun, 8, 125, Math.PI/4);
+spotlight.position.set(0, 80, 0);
+spotlight.target.position.set(0, 0, 0);
+spotlight.castShadow = true;
+spotlight.add(
+    new THREE.Mesh(
+        new THREE.SphereGeometry(4, 32, 32),
+        new THREE.MeshBasicMaterial({
+            color: 0xd15e06,
+        })
+    )
+);
+scene.add(spotlight);
+scene.add(new THREE.SpotLightHelper(spotlight));
 
 // adding resizing event listener
 window.addEventListener("resize", () => {
@@ -325,14 +312,6 @@ const onKeyDown = function (event) {
         case 68: // d
             moveRight = true;
             break;
-        
-        case 27: // esc
-            if (fpsControls.isLocked) {
-                fpsControls.unlock();
-                overlay.style.display = "block";
-                dot.style.display = "none";
-            }
-            break;
     }
 };
 
@@ -356,6 +335,14 @@ const onKeyUp = function (event) {
         case 39: // right
         case 68: // d
             moveRight = false;
+            break;
+
+        case 27: // esc
+            // if (fpsControls.isLocked) {
+            //     fpsControls.unlock();
+            //     overlay.style.display = "block";
+            //     dot.style.display = "none";
+            // }
             break;
 
     }
@@ -513,7 +500,35 @@ function animate() {
             prevTime = time;
         }
     }
+    
+    ctrDay++;
+
+    if (ctrDay == 300){
+        color_fog = 0xd8b88d;
+        fogColor = new THREE.Color(color_fog);
+        scene.background = fogColor;
+        scene.fog = new THREE.FogExp2(fogColor, 0.011);
+    }
+    else if (ctrDay == 600){
+        ctrDay = 0;
+        color_fog = 0x000000;
+        fogColor = new THREE.Color(color_fog);
+        scene.background = fogColor;
+        scene.fog = null;
+    }
+
+    date = Date.now() * 0.0005;
+
+    borderRadius = 60;
+
+    //spotlight position
+    spotlight.position.x = Math.cos(date) * borderRadius;
+    spotlight.position.z = Math.sin(date) * borderRadius;
+    // spotlight.target.position.set(0, 0, 0);
     // orbitControls.update();
+
+    // scene.rotation.y += 0.005;
+
     requestAnimationFrame(animate);
     drawStoneLantern();
 
@@ -689,19 +704,7 @@ btn5cube.rotation.y = Math.PI / 2;
 btn5cube.name = "btn5";
 scene.add( btn5cube );
 
-var textGeo = new THREE.TextGeometry( "My Text", {
-    font: "helvetiker",
-    size: 0.2,
-    height: 0.1,
-    curveSegments: 21,
-    bevelEnabled: false
-} );
-
-var textMaterial = new THREE.MeshPhongMaterial( { color: 0xdddddd } );
-var mesh = new THREE.Mesh( textGeo, textMaterial );
-mesh.position.set(-23, 3, 32);
-scene.add( mesh );
-
+// var textGeo =
 const onMouseClick = (event) => {
     if (camControls == false){
         pointer.x = ((window.innerWidth/2) / window.innerWidth) * 2 - 1;
