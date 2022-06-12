@@ -1,17 +1,18 @@
-var cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-cam.position.z = 0;
-cam.position.y = 5;
+var cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
+cam.position.z = 50;
+cam.position.y = 4;
 
 var renderer = new THREE.WebGL1Renderer({
     antialias: true // Should be true
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true; // Should be true
+renderer.shadowMapSoft = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa2967e);
+// scene.background = new THREE.Color(0xa2967e);
 
 // var controls = new THREE.OrbitControls(cam, renderer.domElement);
 
@@ -83,7 +84,7 @@ var planeMaterial = new THREE.MeshStandardMaterial({
     displacementMap: tilesHeightMap,
     displacementScale: 0.2,
     roughnessMap: tilesRoughnessMap,
-    roughness: 0.9,
+    roughness: 1,
     aoMap: tilesAmbientMap,
 });
 
@@ -103,6 +104,7 @@ planeMesh.position.set(0, 0, 0);
 planeMesh.rotation.x -= Math.PI / 2;
 scene.add(planeMesh);
 
+
 // var spotlight1 = new THREE.SpotLight(0xffffff, 0.5, 40, Math.PI / 3);
 // spotlight1.position.set(3, 30, 0);
 // // spotlight1.target.position.set(-0.2 ,-1 , -2.85);
@@ -119,26 +121,46 @@ grid.position.set(0, 0, 0);
 // scene.add(pLight);
 // scene.add(new THREE.PointLightHelper(pLight, 0.1, 0xff0000));
 
-let pLight = new THREE.PointLight(0xffffff, 1);
-pLight.position.set(1, 15, 2);
-pLight.castShadow = true;
-scene.add(pLight);
-scene.add(new THREE.PointLightHelper(pLight, 0.1, 0xff0000));
+// let pLight = new THREE.PointLight(0xffffff, 1, 40);
+// pLight.position.set(1, 15, 2);
+// pLight.castShadow = true;
+// pLight.shadow.radius = 8;
+// scene.add(pLight);
+// scene.add(new THREE.PointLightHelper(pLight, 0.1, 0xff0000));
 
-let pLigh1 = new THREE.PointLight(0xffffff, 1);
+let pLigh1 = new THREE.PointLight(0xffffff, 1, 40);
 pLigh1.position.set(-5, 5, -13);
 pLigh1.castShadow = true;
 pLigh1.shadow.radius = 8;
 scene.add(pLigh1);
 scene.add(new THREE.PointLightHelper(pLigh1, 0.1, 0xff00ff));
 
-var directionalLight1 = new THREE.DirectionalLight(0xFFFFFF);
-directionalLight1.position.set(3, 25, 0);
+let pLigh2 = new THREE.PointLight(0xff0000, 1, 40);
+pLigh2.position.set(0, 5, -7);
+pLigh2.castShadow = true;
+pLigh2.shadow.radius = 8;   
+scene.add(pLigh2);
+scene.add(new THREE.PointLightHelper(pLigh2, 0.1, 0xff00ff));
+// f18430
+var directionalLight1 = new THREE.DirectionalLight(0x000000);
+directionalLight1.position.set(0, 40, 0);
 directionalLight1.target.position.set(0, 0, 0);
 directionalLight1.target.updateMatrixWorld();
 directionalLight1.castShadow = true;
 scene.add(directionalLight1);
 scene.add(new THREE.DirectionalLightHelper(directionalLight1));
+
+var directionalLight2 = new THREE.DirectionalLight(0xf18430);
+directionalLight2.position.set(0, 40, 50);
+directionalLight2.target.position.set(0, 0, 0);
+directionalLight2.target.updateMatrixWorld();
+directionalLight2.castShadow = true;
+scene.add(directionalLight2);
+scene.add(new THREE.DirectionalLightHelper(directionalLight2));
+
+fogColor = new THREE.Color(0xc6af84);
+scene.background = fogColor;
+scene.fog = new THREE.FogExp2(fogColor, 0.02);
 
 // adding resizing event listener
 window.addEventListener("resize", () => {
@@ -147,52 +169,13 @@ window.addEventListener("resize", () => {
     cam.updateProjectionMatrix();
 });
 
-var clock = new THREE.Clock();
-var control = new THREE.FirstPersonControls(cam, renderer.domElement);
-control.lookSpeed = 0.5;
-control.enabled = true;
-control.activeLook = true;
-// control.lookVertical= true;
-control.constrainVertical = true;
-control.verticalMin = Math.PI / 1.7;
-control.verticalMax = Math.PI / 2.3;
-
-// let keyboard = [];
-// document.body.onkeydown = function(event){
-//     keyboard[event.key] = true;
-// }
-// document.body.onkeyup = function(event){
-//     keyboard[event.key] = false;
-// }
-
-// function process_keyboard(){
-//     if(keyboard['w']){
-//         cam.position.z -= 0.05;
-//     }
-//     else if(keyboard['s']){
-//         cam.position.z += 0.05;
-//     }
-//     else if(keyboard['a']){
-//         cam.position.x -= 0.03;
-//     }else if(keyboard['d']){
-//         cam.position.x += 0.03;
-//     }
-//     // if(evt.key == "a"){
-//     //     cam.position.x += 0.03;
-//     // }
-//     // else if(evt.key == "d"){
-//     //     cam.position.x -= 0.03;
-//     // }
-//     // else if(evt.key == "w"){
-//     //     cam.position.y -= 0.03;
-//     // }
-//     // else if(evt.key == "s"){
-//     //     cam.position.y += 0.03;
-//     // }
-
-// }
+// First Person Controls
 
 let fpsControls = new THREE.PointerLockControls(cam, renderer.domElement);
+
+fpsControls.pointerSpeed = 0.5;
+
+// event listener
 
 let keyboard = [];
 
@@ -204,30 +187,29 @@ document.body.onkeyup = (evt) => {
     keyboard[evt.key] = false;
 };
 
-// document.body.onclick = (evt) => {
-//     fpsControls.lock();
-// };
-
-// document.body.click();
+window.addEventListener("click", () => {
+    fpsControls.lock();
+});
 
 let speed = 0.1;
 
 function process_keyboard() {
     if (keyboard["a"]) {
         fpsControls.moveRight(-speed);
-    } else if (keyboard["d"]) {
+    }
+    if (keyboard["d"]) {
         fpsControls.moveRight(speed);
-    } else if (keyboard["w"]) {
+    } 
+    if (keyboard["w"]) {
         fpsControls.moveForward(speed);
-    } else if (keyboard["s"]) {
+    } 
+    if (keyboard["s"]) {
         fpsControls.moveForward(-speed);
     }
 }
 document.body.onclick = (evt) => {
     fpsControls.lock();
 };
-
-document.body.click();
 
 // load gltf model
 let loader1 = new THREE.GLTFLoader().load("../dump/models/shitennoji/scene.gltf", (result) => {
@@ -576,9 +558,6 @@ scene.add(modelBee2);
 // });
 
 function animate() {
-    control.update(clock.getDelta());
-    // box.rotation.x += 0.01;
-    // box.rotation.z += 0.01;
     process_keyboard();
     requestAnimationFrame(animate);
     renderer.render(scene, cam);
