@@ -142,94 +142,82 @@ function process_keyboard() {
     }
 }
 
-let tourouA_mesh, tourouB_mesh, tourouC_mesh;
-let tourouA_geometry, tourouB_geometry, tourouC_geometry;
-let tourouA_material, tourouB_material, tourouC_material;
-var object;
-var dummy = new THREE.Object3D();
-var mesh;
-var gltfGeometry = new THREE.BufferGeometry();
-let loader3 = new THREE.GLTFLoader().load("./models/old_japanese_lantern/scene.gltf", (gltf) => {
-        var obj1 = gltf.scene;
-        let material = new THREE.MeshLambertMaterial();
 
-        // const box = new THREE.Box3().setFromObject(obj1);
-        // const c = box.getCenter(new THREE.Vector3());
-        // const size = box.getSize(new THREE.Vector3());
 
-        // gltf.scene.traverse(function (child) {
-        //     if (child.isMesh) {
-        //         // Change object material
-        //         // child.material.envMap = envMap;
+let objectLoader = new THREE.GLTFLoader();
+var dummyObject = new THREE.Object3D();
 
-        //         // Setting the buffer geometry
-        //         gltfGeometry = child.geometry.clone();
-        //         material = child.material.clone();
-        //     }
-        // });
-        // gltfGeometry.computeVertexNormals();
-        // gltfGeometry.scale(4, 4, 4);
+const tourouAmount = 4;
 
-        // mesh = new THREE.InstancedMesh(gltfGeometry, material, 1);
-        // mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        // scene.add(mesh);
-        // animate();
+let tourouMeshA, tourouGeometryA, tourouMaterialA;
+let tourouMeshB, tourouGeometryB, tourouMaterialB;
+let tourouMeshC, tourouGeometryC, tourouMaterialC;
 
-        console.log(dumpObject(obj1).join("\n"));
+objectLoader.load("./models/old_japanese_lantern/scene.gltf",
+    (gltf) => {
+        const objectScene = gltf.scene;
 
-        const _tourouA_mesh = obj1.getObjectByName("Tourou_a_low");
-        const _tourouB_mesh = obj1.getObjectByName("Tourou_b_low");
-        const _tourouC_mesh = obj1.getObjectByName("Tourou_c_low");
+        console.log(dumpObject(objectScene).join("\n"));
 
-        console.log(_tourouA_mesh);
-        console.log(_tourouB_mesh);
-        console.log(_tourouC_mesh);
+        const _tourouMeshA = objectScene.getObjectByName("Tourou_a_low");
+        const _tourouMeshB = objectScene.getObjectByName("Tourou_b_low");
+        const _tourouMeshC = objectScene.getObjectByName("Tourou_c_low");
 
-        tourouA_geometry = _tourouA_mesh.children[0].geometry.clone();
-        tourouB_geometry = _tourouB_mesh.children[0].geometry.clone();
-        tourouC_geometry = _tourouC_mesh.children[0].geometry.clone();
+        console.log(_tourouMeshA);
+        console.log(_tourouMeshB);
+        console.log(_tourouMeshC);
 
-        const defaultTransform = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(1.5, 1.5, 1.5));
+        tourouGeometryA = _tourouMeshA.children[0].geometry.clone();
+        tourouGeometryB = _tourouMeshB.children[0].geometry.clone();
+        tourouGeometryC = _tourouMeshC.children[0].geometry.clone();
 
-        tourouA_geometry.applyMatrix4(defaultTransform);
-        tourouB_geometry.applyMatrix4(defaultTransform);
-        tourouC_geometry.applyMatrix4(defaultTransform);
+        const defaultTransform = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(1.75, 1.75, 1.75));
 
-        tourouA_material = _tourouA_mesh.children[0].material;
-        tourouB_material = _tourouB_mesh.children[0].material;
-        tourouC_material = _tourouC_mesh.children[0].material;
+        tourouGeometryA.applyMatrix4(defaultTransform);
+        tourouGeometryB.applyMatrix4(defaultTransform);
+        tourouGeometryC.applyMatrix4(defaultTransform);
 
-        tourouA_mesh = new THREE.InstancedMesh(tourouA_geometry, tourouA_material, 4);
-        tourouB_mesh = new THREE.InstancedMesh(tourouB_geometry, tourouB_material, 4);
-        tourouC_mesh = new THREE.InstancedMesh(tourouC_geometry, tourouC_material, 4);
+        tourouMaterialA = _tourouMeshA.children[0].material;
+        tourouMaterialB = _tourouMeshB.children[0].material;
+        tourouMaterialC = _tourouMeshC.children[0].material;
 
-        tourouA_mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        tourouB_mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        tourouC_mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        tourouMeshA = new THREE.InstancedMesh(tourouGeometryA, tourouMaterialA, tourouAmount);
+        tourouMeshB = new THREE.InstancedMesh(tourouGeometryB, tourouMaterialB, tourouAmount);
+        tourouMeshC = new THREE.InstancedMesh(tourouGeometryC, tourouMaterialC, tourouAmount);
 
-        scene.add(tourouA_mesh);
-        scene.add(tourouB_mesh);
-        scene.add(tourouC_mesh);
+        tourouMeshA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        tourouMeshB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        tourouMeshC.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+        scene.add(tourouMeshA);
+        scene.add(tourouMeshB);
+        scene.add(tourouMeshC);
+
+        tourouMeshA.castShadow = true;
+        tourouMeshA.receiveShadow = true;
+        tourouMeshB.castShadow = true;
+        tourouMeshB.receiveShadow = true;
+        tourouMeshC.castShadow = true;
+        tourouMeshC.receiveShadow = true;
+
+        console.log(tourouMeshA);
+        console.log(tourouMeshB);
+        console.log(tourouMeshC);
 
         animate_2();
     },
 
-    // model loading
-    function (xhr) {
+    (xhr) => {
         console.log((xhr.loaded / xhr.total * 100) + "% loaded!");
     },
 
-    // called when loading has errors
-    function (error) {
-        console.log("Error has occured!");
+    (error) => {
+        console.log("Error has occured when loading model!");
     }
 );
 
-function animate_2() {
-    process_keyboard();
-    requestAnimationFrame(animate_2);
-
-    if (tourouA_mesh && tourouB_mesh && tourouC_mesh) {
+function drawStoneLantern() {
+    if (tourouMeshA && tourouMeshB && tourouMeshC) {
         let i = 0;
         const amount = 4;
         const offset = (amount - 1) / 2;
@@ -241,49 +229,49 @@ function animate_2() {
         testArray.push([7.5, 0]);
 
         let testArray1 = [];
-        testArray1.push(-7.5);
-        testArray1.push(-7.5);
-        testArray1.push(7.5);
-        testArray1.push(7.5);
+        testArray1.push(-17.5);
+        testArray1.push(-17.5);
+        testArray1.push(17.5);
+        testArray1.push(17.5);
+
         let testArray2 = [];
-        testArray2.push(-1.5);
-        testArray2.push(21.5);
-        testArray2.push(21.5);
-        testArray2.push(-1.5);
+        testArray2.push(-28.5);
+        testArray2.push(24.5);
+        testArray2.push(24.5);
+        testArray2.push(-28.5);
 
         // console.log(testArray[1][1]);
 
         for (let x = 0; x < amount; x++) {
             for (let y = 0; y < amount; y++) {
                 for (let z = 0; z < amount; z++) {
-                    dummy.castShadow = true;
-                    dummy.receiveShadow = true;
                     // let slot1 = testArray[i][0];
                     // let slot2 = testArray[i][1];
-                    dummy.position.set(testArray1[i], 1.5, testArray2[i]);
-                    // dummy.rotation.y = (Math.sin(x / 4 + time) + Math.sin(y / 4 + time) + Math.sin(z / 4 + time));
-                    // dummy.rotation.z = dummy.rotation.y * 2;
-                    // dummy.scale.set(2, 2, 2);
-                    dummy.updateMatrix();
-                    tourouA_mesh.setMatrixAt(i, dummy.matrix);
-                    tourouB_mesh.setMatrixAt(i, dummy.matrix);
-                    tourouC_mesh.setMatrixAt(i, dummy.matrix);
+                    dummyObject.position.set(testArray1[i], 1.75, testArray2[i]);
+                    dummyObject.updateMatrix();
+                    tourouMeshA.setMatrixAt(i, dummyObject.matrix);
+                    tourouMeshB.setMatrixAt(i, dummyObject.matrix);
+                    tourouMeshC.setMatrixAt(i, dummyObject.matrix);
 
                     i++;
                 }
             }
         }
 
-        tourouA_mesh.matrixAutoUpdate = false;
-        tourouB_mesh.matrixAutoUpdate = false;
-        tourouC_mesh.matrixAutoUpdate = false;
+        tourouMeshA.matrixAutoUpdate = false;
+        tourouMeshB.matrixAutoUpdate = false;
+        tourouMeshC.matrixAutoUpdate = false;
 
-        // console.log(tourouA_mesh);
-
-        tourouA_mesh.instanceMatrix.needsUpdate = true;
-        tourouB_mesh.instanceMatrix.needsUpdate = true;
-        tourouC_mesh.instanceMatrix.needsUpdate = true;
+        tourouMeshA.instanceMatrix.needsUpdate = true;
+        tourouMeshB.instanceMatrix.needsUpdate = true;
+        tourouMeshC.instanceMatrix.needsUpdate = true;
     }
+}
+
+function animate_2() {
+    process_keyboard();
+    requestAnimationFrame(animate_2);
+    drawStoneLantern();
 
     renderer.render(scene, cam);
 }
@@ -292,87 +280,90 @@ function animate_2() {
 
 // ------------------------------------------------------------------
 // // load gltf model
-let loader1 = new THREE.GLTFLoader().load("./models/shitennoji/scene.gltf", (result) => {
-    result.scene.traverse((node) => {
-        if (node.isMesh) {
-            node.castShadow = true;
-            node.receiveShadow = true;
+objectLoader.load("./models/shitennoji/scene.gltf", (gltf) => {
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
         }
     });
-    result.scene.position.set(0, -0.4, -18);
-    result.scene.scale.set(0.0085, 0.0085, 0.0085);
-    console.log(dumpObject(result.scene).join("\n"));
-    scene.add(result.scene);
+    gltf.scene.position.set(0, -0.4, -18);
+    gltf.scene.scale.set(0.0085, 0.0085, 0.0085);
+    console.log(dumpObject(gltf.scene).join("\n"));
+    scene.add(gltf.scene);
 });
 
-let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scene.gltf", (result) => {
-    result.scene.traverse((node) => {
-        if (node.isMesh) {
-            node.castShadow = true;
-            node.receiveShadow = true;
+objectLoader.load("./models/japanese_lowpoly_temple/scene.gltf", (gltf) => {
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
         }
     });
-    result.scene.position.set(0, 0, 10);
-    result.scene.rotation.y = -Math.PI / 2 * -1;
-    // result.scene.rotation.x = -Math.PI;
-    result.scene.scale.set(0.5, 0.5, 0.5);
-    console.log(dumpObject(result.scene).join("\n"));
-    scene.add(result.scene);
+    gltf.scene.position.set(0, 0, 10);
+    gltf.scene.rotation.y = -Math.PI / 2 * -1;
+    gltf.scene.scale.set(0.5, 0.5, 0.5);
+    console.log(dumpObject(gltf.scene).join("\n"));
+    scene.add(gltf.scene);
 });
+
+
+
+
 
 // var gltfGeometry = new THREE.BufferGeometry();
 // var gltfMaterial = new THREE.MeshLambertMaterial({
 //     color: 0xffffff
 // });
 
-// let loader4 = new THREE.GLTFLoader();
-// const wall1 = new THREE.Object3D();
-// const wall2 = new THREE.Object3D();
-// const wall3 = new THREE.Object3D();
-// loader4.load("./models/modular_concrete_fence/scene3.gltf", processWall);
+let loader4 = new THREE.GLTFLoader();
+const wall1 = new THREE.Object3D();
+const wall2 = new THREE.Object3D();
+const wall3 = new THREE.Object3D();
+loader4.load("./models/modular_concrete_fence/scene3.gltf", processWall);
 
-// function processWall(gltf) {
-//     const box = new THREE.Box3().setFromObject(gltf.scene);
-//     const c = box.getCenter(new THREE.Vector3());
-//     const size = box.getSize(new THREE.Vector3());
-//     gltf.scene.traverse((node) => {
-//         if (node.isMesh) {
-//             gltfGeometry = node.geometry;
-//             const counterrr = 3;
-//             const instancedMesh = new THREE.InstancedMesh(gltfGeometry, node.material, counterrr);
-//             const dummyObject = new THREE.Object3D();
-//             const matrix = new THREE.Matrix4();
+function processWall(gltf) {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const c = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    gltf.scene.traverse((node) => {
+        if (node.isMesh) {
+            gltfGeometry = node.geometry;
+            const counterrr = 3;
+            const instancedMesh = new THREE.InstancedMesh(gltfGeometry, node.material, counterrr);
+            const dummyObject = new THREE.Object3D();
+            const matrix = new THREE.Matrix4();
 
-//             for (let i = 0; i < counterrr; i++) {
-//                 for (let j = 0; j < counterrr; j++) {
-//                     dummyObject.scale.set(0.02, 0.02, 0.02);
-//                     dummyObject.position.set(4.3 * i, 0, 24.7);
-//                     // dummyObject.rotation.y = -Math.PI / 2;
-//                     // dummyObject.position.x = (xDistance * i);
-//                     // dummyObject.position.z = (zDistance * j);
-//                     // dummyObject.scale.set(10, 10, 10);
-//                     // matrix.setPosition(4.3, 0, 24.7)
-//                     // matrix.scale(0.02, 0.02, 0.02)
-//                     instancedMesh.setMatrixAt(0, dummyObject.matrix);
-//                 }
-//             }
+            for (let i = 0; i < counterrr; i++) {
+                for (let j = 0; j < counterrr; j++) {
+                    dummyObject.scale.set(0.02, 0.02, 0.02);
+                    dummyObject.position.set(4.3 * i, 0, 24.7);
+                    // dummyObject.rotation.y = -Math.PI / 2;
+                    // dummyObject.position.x = (xDistance * i);
+                    // dummyObject.position.z = (zDistance * j);
+                    // dummyObject.scale.set(10, 10, 10);
+                    // matrix.setPosition(4.3, 0, 24.7)
+                    // matrix.scale(0.02, 0.02, 0.02)
+                    instancedMesh.setMatrixAt(0, dummyObject.matrix);
+                }
+            }
 
-//             // scene.add(instancedMesh);
-//             // gltfGeometry = node;
-//             // node.castShadow = true;
-//             // node.receiveShadow = true;
-//         }
-//     });
-//     gltf.scene.position.set(-c.x, size.y / 2 - c.y, -c.z); // center the gltf scene
-//     // console.log(dumpObject(gltf.scene).join("\n"));
-//     wall1.add(gltf.scene);
-//     // wall2.add(gltf.scene.clone());
-//     // wall3.add(gltf.scene.clone());
-// }
+            // scene.add(instancedMesh);
+            // gltfGeometry = node;
+            // node.castShadow = true;
+            // node.receiveShadow = true;
+        }
+    });
+    gltf.scene.position.set(-c.x, size.y / 2 - c.y, -c.z); // center the gltf scene
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    wall1.add(gltf.scene);
+    wall2.add(gltf.scene.clone());
+    wall3.add(gltf.scene.clone());
+}
 
-// let length1 = 4.3;
-// let length2 = 8.4615;
-// let length3 = length2 + (length2 - length1);
+let length1 = 4.3;
+let length2 = 8.4615;
+let length3 = length2 + (length2 - length1);
 
 
 // var mesh = null;
@@ -402,20 +393,20 @@ let loader2 = new THREE.GLTFLoader().load("./models/japanese_lowpoly_temple/scen
 // }
 
 
-// // wall1.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
-// // wall1.position.set(4.3, 0, 24.7);
-// // wall1.rotation.y = -Math.PI / 2;
-// // scene.add(wall1);
+wall1.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall1.position.set(4.3, 0, 24.7);
+wall1.rotation.y = -Math.PI / 2;
+scene.add(wall1);
 
-// wall2.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
-// wall2.position.set(8.4615, 0, 24.7);
-// wall2.rotation.y = -Math.PI / 2; // radiant
-// // scene.add(wall2);
+wall2.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall2.position.set(8.4615, 0, 24.7);
+wall2.rotation.y = -Math.PI / 2; // radiant
+scene.add(wall2);
 
-// wall3.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
-// wall3.position.set(length3, 0, 24.7);
-// wall3.rotation.y = -Math.PI / 2; // radiant
-// // scene.add(wall3);
+wall3.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall3.position.set(length3, 0, 24.7);
+wall3.rotation.y = -Math.PI / 2; // radiant
+scene.add(wall3);
 
 // // addInstancedMesh();
 // ------------------------------------------------------------------
