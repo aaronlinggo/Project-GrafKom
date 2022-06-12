@@ -16,6 +16,22 @@
     </head>
     <body>
         <script src="./src/main.js"></script>
-        <!-- <script src="./src/CamScene.js"></script> -->
+        <script>
+            function show_fps() {
+                var script = document.createElement("script");
+                script.onload = function () {
+                    var stats = new Stats();
+                    document.body.appendChild(stats.dom);
+                    requestAnimationFrame(function loop() {
+                        stats.update();
+                        requestAnimationFrame(loop)
+                    });
+                };
+                script.src = "//mrdoob.github.io/stats.js/build/stats.min.js";
+                document.head.appendChild(script);
+            }
+
+            show_fps();
+        </script>
     </body>
 </html>
