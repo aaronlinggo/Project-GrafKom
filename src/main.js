@@ -5,7 +5,16 @@ const speed = 200;
 const pointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 
-let color_fog = 0xd8b88d;
+let color_red_fog = 216;
+let color_green_fog = 184;
+let color_blue_fog = 140;
+
+let color_fog = new THREE.Color('rgb(' + color_red_fog + ', ' + color_green_fog + ', ' + color_blue_fog + ')');
+
+const red_color = Math.floor(216/54);
+const green_color =  Math.floor(184/54);
+const blue_color =  Math.floor(140/54);
+
 let offsetY = 2.5;
 let moveForward = false;
 let moveBackward = false;
@@ -24,6 +33,7 @@ let direction = new THREE.Vector3();
 let startWebGL = false;
 
 let ctrDay = 0;
+let ctrTimeDay = 0;
 
 let lamps = [true, true, true, true];
 
@@ -36,7 +46,7 @@ overlay.style.width = "100vw";
 overlay.style.height = "100vh";
 overlay.style.zIndex = "1";
 overlay.style.background = "#000";
-overlay.style.opacity = "0.7";
+overlay.style.opacity = "0.9";
 overlay.style.color = "#fff";
 overlay.style.textAlign = "center";
 overlay.style.verticalAlign = "middle";
@@ -51,7 +61,7 @@ detail.style.position = "absolute";
 detail.style.top = "0px";
 detail.style.left = (window.innerWidth - 250) + "px";
 detail.style.width = "20vw";
-detail.style.height = "13vh";
+detail.style.height = "10vh";
 detail.style.zIndex = "1";
 detail.style.background = "#000";
 detail.style.opacity = "0.8";
@@ -60,7 +70,7 @@ detail.style.textAlign = "center";
 detail.style.verticalAlign = "middle";
 detail.style.display = "table-cell";
 detail.style.whiteSpace = "pre";
-detail.textContent = "Press 'Esc' for exit\r\nPress 'W' for forward\r\nPress 'S' for backward\r\nPress 'A' for left\r\nPress 'D' for right";
+detail.textContent = "Press 'W' for forward\r\nPress 'S' for backward\r\nPress 'A' for left\r\nPress 'D' for right";
 detail.style.display = "block";
 document.body.appendChild(detail);
 
@@ -89,7 +99,7 @@ cam.lookAt(0, 5, 5);
 
 var renderer = new THREE.WebGL1Renderer({
     powerPreference: "high-performance", // "high-performance", "low-power" or "default". 
-    antialias: false, // Should be true
+    antialias: true, // Should be true
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true; // Should be true
@@ -102,6 +112,7 @@ var scene = new THREE.Scene();
 // add fog
 fogColor = new THREE.Color(color_fog);
 scene.background = fogColor;
+console.log(scene.background)
 scene.fog = new THREE.FogExp2(fogColor, 0.011);
 
 var textureLoader = new THREE.TextureLoader();
@@ -500,22 +511,50 @@ function animate() {
             prevTime = time;
         }
     }
-    
-    ctrDay++;
 
-    if (ctrDay == 300){
-        color_fog = 0xd8b88d;
+    ctrTimeDay++;
+
+    if (ctrTimeDay%12 == 0){
+        if (ctrDay == 0){
+            color_red_fog -= red_color;
+            color_green_fog -= green_color;
+            color_blue_fog -= blue_color;
+        }
+        else{
+            color_red_fog += red_color;
+            color_green_fog += green_color;
+            color_blue_fog += blue_color;
+        }
+    
+        if (color_red_fog == 0){
+            ctrDay = 1;
+        }
+        else if (color_red_fog == 216){
+            ctrDay = 0;
+        }
+    
+        color_fog = new THREE.Color('rgb('+ color_red_fog + ', ' + color_green_fog + ', '+ color_blue_fog +')');
+        // console.log(color_fog)
         fogColor = new THREE.Color(color_fog);
         scene.background = fogColor;
         scene.fog = new THREE.FogExp2(fogColor, 0.011);
+        ctrTimeDay = 0;
     }
-    else if (ctrDay == 600){
-        ctrDay = 0;
-        color_fog = 0x000000;
-        fogColor = new THREE.Color(color_fog);
-        scene.background = fogColor;
-        scene.fog = null;
-    }
+
+
+    // if (ctrDay == 300){
+    //     color_fog = 0xd8b88d;
+    //     fogColor = new THREE.Color(color_fog);
+    //     scene.background = fogColor;
+    //     scene.fog = new THREE.FogExp2(fogColor, 0.011);
+    // }
+    // else if (ctrDay == 600){
+    //     ctrDay = 0;
+    //     color_fog = 0x000000;
+    //     fogColor = new THREE.Color(color_fog);
+    //     scene.background = fogColor;
+    //     scene.fog = null;
+    // }
 
     date = Date.now() * 0.0005;
 
@@ -524,6 +563,7 @@ function animate() {
     //spotlight position
     spotlight.position.x = Math.cos(date) * borderRadius;
     spotlight.position.z = Math.sin(date) * borderRadius;
+    spotlight.rotation.x += 0.00001;
     // spotlight.target.position.set(0, 0, 0);
     // orbitControls.update();
 
