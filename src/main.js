@@ -7,7 +7,7 @@ var renderer = new THREE.WebGL1Renderer({
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true; // Should be true
-renderer.shadowMapSoft = true;
+renderer.shadowMapSoft = true; // should be true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
@@ -15,9 +15,6 @@ var scene = new THREE.Scene();
 // scene.background = new THREE.Color(0xa2967e);
 
 // var controls = new THREE.OrbitControls(cam, renderer.domElement);
-
-
-
 
 // Make use of the `TextureLoader` object to handle asynchronus loading and
 // assignment of the texture to your material    
@@ -50,27 +47,27 @@ var scene = new THREE.Scene();
 
 
 var textureLoader = new THREE.TextureLoader();
-const tilesBaseColor = textureLoader.load("../dump/textures/Dirt_006_SD/Dirt_006_Base Color.jpg", (texture) => {
+const tilesBaseColor = textureLoader.load("./dump/textures/Dirt_006_SD/Dirt_006_Base Color.jpg", (texture) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     // texture.offset.set(0, 0);
     texture.repeat.set(20, 20);
 });
-const tilesAmbientMap = textureLoader.load("../dump/textures/Dirt_006_SD/Dirt_006_Ambient Occlusion.jpg", (texture) => {
+const tilesAmbientMap = textureLoader.load("./dump/textures/Dirt_006_SD/Dirt_006_Ambient Occlusion.jpg", (texture) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     // texture.offset.set(0, 0);
     texture.repeat.set(20, 20);
 });
-const tilesHeightMap = textureLoader.load("../dump/textures/Dirt_006_SD/Dirt_006_Height.png", (texture) => {
+const tilesHeightMap = textureLoader.load("./dump/textures/Dirt_006_SD/Dirt_006_Height.png", (texture) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     // texture.offset.set(0, 0);
     texture.repeat.set(20, 20);
 });
-const tilesNormalMap = textureLoader.load("../dump/textures/Dirt_006_SD/Dirt_006_Normal.jpg", (texture) => {
+const tilesNormalMap = textureLoader.load("./dump/textures/Dirt_006_SD/Dirt_006_Normal.jpg", (texture) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     // texture.offset.set(0, 0);
     texture.repeat.set(20, 20);
 });
-const tilesRoughnessMap = textureLoader.load("../dump/textures/Dirt_006_SD/Dirt_006_Roughness.jpg", (texture) => {
+const tilesRoughnessMap = textureLoader.load("./dump/textures/Dirt_006_SD/Dirt_006_Roughness.jpg", (texture) => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     // texture.offset.set(0, 0);
     texture.repeat.set(20, 20);
@@ -103,7 +100,6 @@ planeMesh.receiveShadow = true;
 planeMesh.position.set(0, 0, 0);
 planeMesh.rotation.x -= Math.PI / 2;
 scene.add(planeMesh);
-
 
 // var spotlight1 = new THREE.SpotLight(0xffffff, 0.5, 40, Math.PI / 3);
 // spotlight1.position.set(3, 30, 0);
@@ -138,7 +134,7 @@ scene.add(new THREE.PointLightHelper(pLigh1, 0.1, 0xff00ff));
 let pLigh2 = new THREE.PointLight(0xff0000, 1, 40);
 pLigh2.position.set(0, 5, -7);
 pLigh2.castShadow = true;
-pLigh2.shadow.radius = 8;   
+pLigh2.shadow.radius = 8;
 scene.add(pLigh2);
 scene.add(new THREE.PointLightHelper(pLigh2, 0.1, 0xff00ff));
 // f18430
@@ -170,13 +166,11 @@ window.addEventListener("resize", () => {
 });
 
 // First Person Controls
-
 let fpsControls = new THREE.PointerLockControls(cam, renderer.domElement);
 
 fpsControls.pointerSpeed = 0.5;
 
 // event listener
-
 let keyboard = [];
 
 document.body.onkeydown = (evt) => {
@@ -199,10 +193,10 @@ function process_keyboard() {
     }
     if (keyboard["d"]) {
         fpsControls.moveRight(speed);
-    } 
+    }
     if (keyboard["w"]) {
         fpsControls.moveForward(speed);
-    } 
+    }
     if (keyboard["s"]) {
         fpsControls.moveForward(-speed);
     }
@@ -212,7 +206,7 @@ document.body.onclick = (evt) => {
 };
 
 // load gltf model
-let loader1 = new THREE.GLTFLoader().load("../dump/models/shitennoji/scene.gltf", (result) => {
+let loader1 = new THREE.GLTFLoader().load("./dump/models/shitennoji/scene.gltf", (result) => {
     result.scene.traverse((node) => {
         if (node.isMesh) {
             node.castShadow = true;
@@ -224,7 +218,7 @@ let loader1 = new THREE.GLTFLoader().load("../dump/models/shitennoji/scene.gltf"
     scene.add(result.scene);
 });
 
-let loader2 = new THREE.GLTFLoader().load("../dump/models/japanese_lowpoly_temple/scene.gltf", (result) => {
+let loader2 = new THREE.GLTFLoader().load("./dump/models/japanese_lowpoly_temple/scene.gltf", (result) => {
     result.scene.traverse((node) => {
         if (node.isMesh) {
             node.castShadow = true;
@@ -241,9 +235,10 @@ let loader3 = new THREE.GLTFLoader();
 const modelBee = new THREE.Object3D();
 const modelBee1 = new THREE.Object3D();
 const modelBee2 = new THREE.Object3D();
-loader3.load("../dump/models/japanese_wall/scene.gltf", processBee);
+// loader3.load("./dump/models/japanese_wall/scene.gltf", processBee);
 
 var wall = [];
+
 function processBee(gltf) {
     const box = new THREE.Box3().setFromObject(gltf.scene);
     const c = box.getCenter(new THREE.Vector3());
@@ -276,17 +271,52 @@ function processBee(gltf) {
 modelBee.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee.position.set(24.4, 0, 20);
 modelBee.rotation.y = Math.PI / 2;
-scene.add(modelBee);
+// scene.add(modelBee);
 
 modelBee1.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee1.position.set(24.4, 0, 24.765);
 modelBee1.rotation.y = Math.PI / 2 * 3; // radiant
-scene.add(modelBee1);
+// scene.add(modelBee1);
 
 modelBee2.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee2.position.set(24.4, 0, 29.53);
 modelBee2.rotation.y = Math.PI / 2; // radiant
-scene.add(modelBee2);
+// scene.add(modelBee2);
+
+let loader4 = new THREE.GLTFLoader();
+const wall1 = new THREE.Object3D();
+const wall2 = new THREE.Object3D();
+const wall3 = new THREE.Object3D();
+loader4.load("./dump/models/modular_concrete_fence/scene3.gltf", processWall);
+
+function processWall(gltf) {
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const c = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    gltf.scene.position.set(-c.x, size.y / 2 - c.y, -c.z); // center the gltf scene
+    wall1.add(gltf.scene);
+    wall2.add(gltf.scene.clone());
+    wall3.add(gltf.scene.clone());
+}
+
+let length1 = 4.3;
+let length2 = 8.4615;
+let length3 = length2 + (length2 - length1);
+
+wall1.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall1.position.set(4.3, 0, 24.7);
+wall1.rotation.y = -Math.PI / 2;
+scene.add(wall1);
+
+wall2.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall2.position.set(8.4615, 0, 24.7);
+wall2.rotation.y = -Math.PI / 2; // radiant
+scene.add(wall2);
+
+wall3.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
+wall3.position.set(length3, 0, 24.7);
+wall3.rotation.y = -Math.PI / 2; // radiant
+scene.add(wall3);
 
 // modelBee.scale.set(0.002, 0.002, 0.002); // because gltf.scene is very big
 // modelBee.position.set(2.4, 0.2, 0.5);

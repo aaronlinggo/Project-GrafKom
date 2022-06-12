@@ -1,22 +1,20 @@
 var cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-cam.position.z = 10;
-cam.position.y = 3;
+cam.position.z = 50;
+cam.position.y = 4;
 
 var renderer = new THREE.WebGL1Renderer({
-    antialias: true // Should be true
+    antialias: false // Should be true
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true; // Should be true
-renderer.shadowMap.type = THREE.BasicShadowMap;
+renderer.shadowMap.enabled = false; // Should be true
+renderer.shadowMapSoft = false; // should be true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa2967e);
+// scene.background = new THREE.Color(0xa2967e);
 
 // var controls = new THREE.OrbitControls(cam, renderer.domElement);
-
-
-
 
 // Make use of the `TextureLoader` object to handle asynchronus loading and
 // assignment of the texture to your material    
@@ -45,8 +43,6 @@ scene.background = new THREE.Color(0xa2967e);
 //    shininess: 10,
 //    map: texture,
 // } );
-
-
 
 var textureLoader = new THREE.TextureLoader();
 const tilesBaseColor = textureLoader.load("./textures/Dirt_006_SD/Dirt_006_Base Color.jpg", (texture) => {
@@ -101,14 +97,14 @@ var planeMesh = new THREE.Mesh(plane, planeMaterial);
 planeMesh.receiveShadow = true;
 planeMesh.position.set(0, 0, 0);
 planeMesh.rotation.x -= Math.PI / 2;
-scene.add(planeMesh);
+// scene.add(planeMesh);
 
-var spotlight1 = new THREE.SpotLight(0xffffff, 0.5, 20, Math.PI / 3);
-spotlight1.position.set(3, 15, 0);
-// spotlight1.target.position.set(-0.2 ,-1 , -2.85);
-spotlight1.castShadow = true;
-scene.add(spotlight1);
-scene.add(new THREE.SpotLightHelper(spotlight1));
+// var spotlight1 = new THREE.SpotLight(0xffffff, 0.5, 40, Math.PI / 3);
+// spotlight1.position.set(3, 30, 0);
+// // spotlight1.target.position.set(-0.2 ,-1 , -2.85);
+// spotlight1.castShadow = true;
+// scene.add(spotlight1);
+// scene.add(new THREE.SpotLightHelper(spotlight1));
 
 var grid = new THREE.GridHelper(50, 100, 0x00ffaa, 0x00ffaa);
 grid.position.set(0, 0, 0);
@@ -118,25 +114,46 @@ var ambient = new THREE.AmbientLight(0x404040);
 // ambient.castShadow = true;
 scene.add(ambient);
 
-let pLight = new THREE.PointLight(0xffffff, 1);
-pLight.position.set(1, 15, 2);
+// let pLight = new THREE.PointLight(0xffffff, 1, 40);
+// pLight.position.set(1, 15, 2);
 // pLight.castShadow = true;
-scene.add(pLight);
-scene.add(new THREE.PointLightHelper(pLight, 0.1, 0xff0000));
+// pLight.shadow.radius = 8;
+// scene.add(pLight);
+// scene.add(new THREE.PointLightHelper(pLight, 0.1, 0xff0000));
 
-let pLigh1 = new THREE.PointLight(0xffffff, 1);
+let pLigh1 = new THREE.PointLight(0xffffff, 1, 40);
 pLigh1.position.set(-5, 5, -13);
-// pLight.castShadow = true;
+pLigh1.castShadow = true;
+pLigh1.shadow.radius = 8;
 scene.add(pLigh1);
-scene.add(new THREE.PointLightHelper(pLigh1, 0.1, 0xff0000));
+scene.add(new THREE.PointLightHelper(pLigh1, 0.1, 0xff00ff));
 
-var directionalLight1 = new THREE.DirectionalLight(0xFFFFFF);
-directionalLight1.position.set(3, 15, 0);
+let pLigh2 = new THREE.PointLight(0xff0000, 1, 40);
+pLigh2.position.set(0, 5, -7);
+pLigh2.castShadow = true;
+pLigh2.shadow.radius = 8;
+scene.add(pLigh2);
+scene.add(new THREE.PointLightHelper(pLigh2, 0.1, 0xff00ff));
+// f18430
+var directionalLight1 = new THREE.DirectionalLight(0x000000);
+directionalLight1.position.set(0, 40, 0);
 directionalLight1.target.position.set(0, 0, 0);
 directionalLight1.target.updateMatrixWorld();
 directionalLight1.castShadow = true;
 scene.add(directionalLight1);
 scene.add(new THREE.DirectionalLightHelper(directionalLight1));
+
+var directionalLight2 = new THREE.DirectionalLight(0xf18430);
+directionalLight2.position.set(0, 40, 50);
+directionalLight2.target.position.set(0, 0, 0);
+directionalLight2.target.updateMatrixWorld();
+directionalLight2.castShadow = true;
+scene.add(directionalLight2);
+scene.add(new THREE.DirectionalLightHelper(directionalLight2));
+
+fogColor = new THREE.Color(0xc6af84);
+scene.background = fogColor;
+scene.fog = new THREE.FogExp2(fogColor, 0.02);
 
 // adding resizing event listener
 window.addEventListener("resize", () => {
@@ -145,10 +162,12 @@ window.addEventListener("resize", () => {
     cam.updateProjectionMatrix();
 });
 
+// First Person Controls
 let fpsControls = new THREE.PointerLockControls(cam, renderer.domElement);
 
 fpsControls.pointerSpeed = 0.5;
 
+// event listener
 let keyboard = [];
 
 document.body.onkeydown = (evt) => {
@@ -159,22 +178,23 @@ document.body.onkeyup = (evt) => {
     keyboard[evt.key] = false;
 };
 
-document.body.onclick = (evt) => {
+window.addEventListener("click", () => {
     fpsControls.lock();
-};
-
-document.body.click();
+});
 
 let speed = 0.5;
 
 function process_keyboard() {
     if (keyboard["a"]) {
         fpsControls.moveRight(-speed);
-    } else if (keyboard["d"]) {
+    }
+    if (keyboard["d"]) {
         fpsControls.moveRight(speed);
-    } else if (keyboard["w"]) {
+    }
+    if (keyboard["w"]) {
         fpsControls.moveForward(speed);
-    } else if (keyboard["s"]) {
+    }
+    if (keyboard["s"]) {
         fpsControls.moveForward(-speed);
     }
 }
@@ -217,7 +237,7 @@ let loader3 = new THREE.GLTFLoader();
 const modelBee = new THREE.Object3D();
 const modelBee1 = new THREE.Object3D();
 const modelBee2 = new THREE.Object3D();
-loader3.load("./models/japanese_wall/scene.gltf", processBee);
+// loader3.load("./models/japanese_wall/scene.gltf", processBee);
 
 var wall = [];
 function processBee(gltf) {
@@ -252,17 +272,17 @@ function processBee(gltf) {
 modelBee.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee.position.set(24.4, 0, 20);
 modelBee.rotation.y = Math.PI / 2;
-scene.add(modelBee);
+// scene.add(modelBee);
 
 modelBee1.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee1.position.set(24.4, 0, 24.765);
 modelBee1.rotation.y = Math.PI / 2 * 3; // radiant
-scene.add(modelBee1);
+// scene.add(modelBee1);
 
 modelBee2.scale.set(0.0225, 0.0225, 0.0225); // because gltf.scene is very big
 modelBee2.position.set(24.4, 0, 29.53);
 modelBee2.rotation.y = Math.PI / 2; // radiant
-scene.add(modelBee2);
+// scene.add(modelBee2);
 
 // modelBee.scale.set(0.002, 0.002, 0.002); // because gltf.scene is very big
 // modelBee.position.set(2.4, 0.2, 0.5);
