@@ -1,0 +1,299 @@
+{
+	"accessors": [
+		{
+			"bufferView": 0,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 33629,
+			"max": [
+				10.0,
+				10.0,
+				37.380001068115234
+			],
+			"min": [
+				-10.0,
+				-13.400001525878906,
+				0.0
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 1,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 33629,
+			"max": [
+				1.0,
+				1.0,
+				1.0
+			],
+			"min": [
+				-1.0,
+				-1.0,
+				-1.0
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 33629,
+			"max": [
+				1.0,
+				1.0,
+				1.0,
+				1.0
+			],
+			"min": [
+				-1.0,
+				-1.0,
+				-1.0,
+				-1.0
+			],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 3,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 33629,
+			"max": [
+				0.9999547600746155,
+				0.9988893866539001
+			],
+			"min": [
+				0.008278287947177887,
+				0.007417310029268265
+			],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 4,
+			"byteOffset": 0,
+			"componentType": 5125,
+			"count": 89088,
+			"type": "SCALAR"
+		}
+	],
+	"asset": {
+		"extras": {
+			"author": "Jainesh Pathak (https://sketchfab.com/spectraut2)",
+			"created": "Sun Jun 12 19:33:04 2022",
+			"license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+			"source": "https://sketchfab.com/3d-models/japanese-temple-a210febbec4f454dbd0df1d142be06bc",
+			"title": "Japanese Temple"
+		},
+		"generator": "Gestaltor 2022.2.2 Tagliatelle Community",
+		"version": "2.0"
+	},
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 403548,
+			"byteOffset": 0,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 403548,
+			"byteOffset": 403548,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 538064,
+			"byteOffset": 807096,
+			"byteStride": 16,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 269032,
+			"byteOffset": 1345160,
+			"byteStride": 8,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 356352,
+			"byteOffset": 1614192,
+			"target": 34963
+		}
+	],
+	"buffers": [
+		{
+			"byteLength": 1970544,
+			"uri": "scene_low.bin"
+		}
+	],
+	"images": [
+		{
+			"mimeType": "image/jpeg",
+			"uri": "textures/low_textures/Japanese_Shrine_Mat_baseColor.jpeg"
+		},
+		{
+			"mimeType": "image/png",
+			"uri": "textures/low_textures/Japanese_Shrine_Mat_metallicRoughness.png"
+		},
+		{
+			"mimeType": "image/png",
+			"uri": "textures/low_textures/Japanese_Shrine_Mat_normal.png"
+		}
+	],
+	"materials": [
+		{
+			"doubleSided": true,
+			"name": "Japanese_Shrine_Mat",
+			"normalTexture": {
+				"index": 2
+			},
+			"occlusionTexture": {
+				"index": 1
+			},
+			"pbrMetallicRoughness": {
+				"baseColorTexture": {
+					"index": 0
+				},
+				"metallicRoughnessTexture": {
+					"index": 1
+				}
+			}
+		}
+	],
+	"meshes": [
+		{
+			"name": "Japanese_Shrine_Japanese_Shrine_Mat_0",
+			"primitives": [
+				{
+					"attributes": {
+						"NORMAL": 1,
+						"POSITION": 0,
+						"TANGENT": 2,
+						"TEXCOORD_0": 3
+					},
+					"indices": 4,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		}
+	],
+	"nodes": [
+		{
+			"children": [
+				1
+			],
+			"matrix": [
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				2.220446049250313e-16,
+				-1.0,
+				0.0,
+				0.0,
+				1.0,
+				2.220446049250313e-16,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"name": "Sketchfab_model"
+		},
+		{
+			"children": [
+				2
+			],
+			"matrix": [
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				2.220446049250313e-16,
+				1.0,
+				0.0,
+				0.0,
+				-1.0,
+				2.220446049250313e-16,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"name": "c474c0eac6b548f1bb5ca38a0907a3e5.fbx"
+		},
+		{
+			"children": [
+				3
+			],
+			"name": "RootNode"
+		},
+		{
+			"children": [
+				4
+			],
+			"matrix": [
+				100.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				-1.6292067894774224e-05,
+				-99.99999999999866,
+				0.0,
+				0.0,
+				99.99999999999866,
+				-1.6292067894774224e-05,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"name": "Japanese_Shrine"
+		},
+		{
+			"mesh": 0,
+			"name": "Japanese_Shrine_Japanese_Shrine_Mat_0"
+		}
+	],
+	"samplers": [
+		{
+			"magFilter": 9729,
+			"minFilter": 9987,
+			"wrapS": 10497,
+			"wrapT": 10497
+		}
+	],
+	"scene": 0,
+	"scenes": [
+		{
+			"name": "Sketchfab_Scene",
+			"nodes": [
+				0
+			]
+		}
+	],
+	"textures": [
+		{
+			"sampler": 0,
+			"source": 0
+		},
+		{
+			"sampler": 0,
+			"source": 1
+		},
+		{
+			"sampler": 0,
+			"source": 2
+		}
+	]
+}

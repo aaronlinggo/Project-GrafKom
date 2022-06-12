@@ -1,0 +1,11 @@
+Model Information:
+* title:	Modular Concrete Fence
+* source:	https://sketchfab.com/3d-models/modular-concrete-fence-1aa94cad24c44e6c9739d1bd0150ddd4
+* author:	Thunder (https://sketchfab.com/thunderpwn)
+
+Model License:
+* license type:	CC-BY-SA-4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
+* requirements:	Author must be credited. Modified versions must have the same license. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Modular Concrete Fence" (https://sketchfab.com/3d-models/modular-concrete-fence-1aa94cad24c44e6c9739d1bd0150ddd4) by Thunder (https://sketchfab.com/thunderpwn) licensed under CC-BY-SA-4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
