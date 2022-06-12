@@ -16,26 +16,10 @@
         <!-- <script src="./node_modules/three/examples/js/objects/Sky.js"></script> -->
         <!-- <script type="module" src="./node_modules/three/examples/jsm/geometries/TextGeometry.js"></script> -->
         <script src="./dump/src/threex.rendererstats.js"></script>
+        <link rel="icon" type="image/png" href="./">
         <link rel="stylesheet" type="text/css" href="./src/style.css">
     </head>
     <body>
-        <script src="./src/main.js"></script>
-        <script>
-            function show_fps() {
-                var script = document.createElement("script");
-                script.onload = function () {
-                    var stats = new Stats();
-                    document.body.appendChild(stats.dom);
-                    requestAnimationFrame(function loop() {
-                        stats.update();
-                        requestAnimationFrame(loop)
-                    });
-                };
-                script.src = "//mrdoob.github.io/stats.js/build/stats.min.js";
-                document.head.appendChild(script);
-            }
-
-            show_fps();
-        </script>
+        <script src="./src/clean_main.js"></script>
     </body>
 </html>

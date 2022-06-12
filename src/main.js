@@ -364,6 +364,7 @@ document.body.addEventListener("keyup", onKeyUp, false);
 
 let objectLoader = new THREE.GLTFLoader();
 var dummyObject = new THREE.Object3D();
+var dummyObject2 = new THREE.Object3D();
 
 const tourouAmount = 4;
 
@@ -485,9 +486,6 @@ function drawStoneLantern() {
         tourouMeshC.instanceMatrix.needsUpdate = true;
     }
 }
-document.body.onclick = (evt) => {
-    fpsControls.lock();
-};
 
 function animate() {
     if (startWebGL) {
@@ -571,6 +569,7 @@ function animate() {
 
     requestAnimationFrame(animate);
     drawStoneLantern();
+    drawStoneWall();
 
     renderer.render(scene, cam);
     rendererStats.update(renderer);
@@ -585,7 +584,7 @@ objectLoader.load("./dump/models/shitennoji/scene.gltf", (gltf) => {
             child.receiveShadow = true;
         }
     });
-    gltf.scene.position.set(0, -0.4, -18);
+    gltf.scene.position.set(0, -0.4, -24);
     gltf.scene.scale.set(0.0085, 0.0085, 0.0085);
     console.log(dumpObject(gltf.scene).join("\n"));
     scene.add(gltf.scene);
@@ -600,7 +599,7 @@ objectLoader.load(
                 child.receiveShadow = true;
             }
         });
-        gltf.scene.position.set(0, 0, 10);
+        gltf.scene.position.set(0, 0, 12);
         gltf.scene.rotation.y = (-Math.PI / 2) * -1;
         gltf.scene.scale.set(0.5, 0.5, 0.5);
         console.log(dumpObject(gltf.scene).join("\n"));
@@ -608,73 +607,224 @@ objectLoader.load(
     }
 );
 
-let loader4 = new THREE.GLTFLoader();
-const wall1 = new THREE.Object3D();
-const wall2 = new THREE.Object3D();
-const wall3 = new THREE.Object3D();
-loader4.load("./dump/models/modular_concrete_fence/scene.gltf", processWall);
+const wallAmountA = 26;
+const wallAmountB = 24;
 
-function processWall(gltf) {
-    const box = new THREE.Box3().setFromObject(gltf.scene);
-    const c = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    gltf.scene.traverse((node) => {
-        if (node.isMesh) {
-            gltfGeometry = node.geometry;
-            const counterrr = 3;
-            const instancedMesh = new THREE.InstancedMesh(
-                gltfGeometry,
-                node.material,
-                counterrr
-            );
-            const dummyObject = new THREE.Object3D();
-            const matrix = new THREE.Matrix4();
+let wallMeshA, wallGeometryA, wallMaterialA;
+let wallMeshB, wallGeometryB, wallMaterialB;
 
-            for (let i = 0; i < counterrr; i++) {
-                for (let j = 0; j < counterrr; j++) {
-                    dummyObject.scale.set(0.02, 0.02, 0.02);
-                    dummyObject.position.set(4.3 * i, 0, 24.7);
-                    // dummyObject.rotation.y = -Math.PI / 2;
-                    // dummyObject.position.x = (xDistance * i);
-                    // dummyObject.position.z = (zDistance * j);
-                    // dummyObject.scale.set(10, 10, 10);
-                    // matrix.setPosition(4.3, 0, 24.7)
-                    // matrix.scale(0.02, 0.02, 0.02)
-                    instancedMesh.setMatrixAt(0, dummyObject.matrix);
+objectLoader.load("./dump/models/modular_concrete_fence/scene.gltf",
+    (gltf) => {
+        const objectScene = gltf.scene;
+
+        console.log(dumpObject(objectScene).join("\n"));
+
+        const _wallMeshA = objectScene.getObjectByName("Cube");
+        const _wallMeshB = objectScene.getObjectByName("Cube001");
+
+        console.log(_wallMeshA);
+        console.log(_wallMeshB);
+
+        wallGeometryA = _wallMeshA.children[0].geometry.clone();
+        wallGeometryB = _wallMeshB.children[0].geometry.clone();
+
+        const defaultTransformA = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(0.03, 0.03, 0.03));
+        const defaultTransformB = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(0.04, 0.04, 0.04));
+
+        wallGeometryA.applyMatrix4(defaultTransformA);
+        wallGeometryB.applyMatrix4(defaultTransformB);
+
+        wallMaterialA = _wallMeshA.children[0].material;
+        wallMaterialB = _wallMeshB.children[0].material;
+
+        wallMeshA = new THREE.InstancedMesh(wallGeometryA, wallMaterialA, wallAmountA);
+        wallMeshB = new THREE.InstancedMesh(wallGeometryB, wallMaterialB, wallAmountB);
+
+        wallMeshA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        wallMeshB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+        scene.add(wallMeshA);
+        scene.add(wallMeshB);
+
+        wallMeshA.castShadow = true;
+        wallMeshA.receiveShadow = true;
+        wallMeshB.castShadow = true;
+        wallMeshB.receiveShadow = true;
+
+        console.log(wallMeshA);
+        console.log(wallMeshB);
+
+        animate();
+    },
+
+    (xhr) => {
+        console.log((xhr.loaded / xhr.total * 100) + "% loaded!");
+    },
+
+    (error) => {
+        console.log("Error has occured when loading model!");
+    }
+);
+
+var boolTest = true;
+
+function drawStoneWall() {
+    if (
+        wallMeshA &&
+        wallMeshB
+    ) {
+        let testArray1 = [];
+        // Gap: 4.7
+        testArray1.push(-16.95);
+        testArray1.push(-12.25);
+        testArray1.push(- 7.55);
+        testArray1.push(- 2.85);
+        testArray1.push(  2.85);
+        testArray1.push(  7.55);
+        testArray1.push( 12.25);
+        testArray1.push( 16.95);
+        testArray1.push( 16.95);
+        testArray1.push( 16.95);
+        testArray1.push( 16.95);
+        testArray1.push( 16.95);
+        testArray1.push( 16.95);
+        testArray1.push( 16.95);
+        testArray1.push(-16.95);
+        testArray1.push(-12.25);
+        testArray1.push(- 7.55);
+        testArray1.push(- 2.85);
+        testArray1.push(  2.85);
+        testArray1.push(  7.55);
+        testArray1.push( 12.25);
+        testArray1.push(-16.95);
+        testArray1.push(-16.95);
+        testArray1.push(-16.95);
+        testArray1.push(-16.95);
+        testArray1.push(-16.95);
+
+        let testArray2 = [];
+        // Gap: 4.7
+        testArray2.push(-14.55);
+        testArray2.push(- 9.85);
+        testArray2.push(- 5.15);
+        testArray2.push(  5.15);
+        testArray2.push(  9.85);
+        testArray2.push( 14.55);
+        testArray2.push( 16.95);
+        testArray2.push( 16.95);
+        testArray2.push( 16.95);
+        testArray2.push( 16.95);
+        testArray2.push( 16.95);
+        testArray2.push( 16.95);
+        testArray2.push(-14.55);
+        testArray2.push(- 9.85);
+        testArray2.push(- 5.15);
+        testArray2.push(  5.15);
+        testArray2.push(  9.85);
+        testArray2.push( 14.55);
+        testArray2.push(-16.95);
+        testArray2.push(-16.95);
+        testArray2.push(-16.95);
+        testArray2.push(-16.95);
+        testArray2.push(-16.95);
+        testArray2.push(-16.95);
+
+        let testArray3 = [];
+        // Gap: 4.7
+        testArray3.push( 24.4);
+        testArray3.push( 19.7);
+        testArray3.push( 15.0);
+        testArray3.push( 10.3);
+        testArray3.push(  5.6);
+        testArray3.push(  0.9);
+        testArray3.push( 24.4);
+        testArray3.push( 19.7);
+        testArray3.push( 15.0);
+        testArray3.push( 10.3);
+        testArray3.push(  5.6);
+        testArray3.push(  0.9);
+
+        let testArray4 = [];
+        // Gap: 4.7
+        testArray4.push( 22.0);
+        testArray4.push( 17.3);
+        testArray4.push( 12.6);
+        testArray4.push(  7.9);
+        testArray4.push(  3.2);
+        testArray4.push(- 1.5);
+        testArray4.push( 22.0);
+        testArray4.push( 17.3);
+        testArray4.push( 12.6);
+        testArray4.push(  7.9);
+        testArray4.push(  3.2);
+
+        // Salah hitungan index i, cek lagi
+        let i = 0;
+        for (let x = 0; x < wallAmountA; x++) {
+            for (let y = 0; y < wallAmountA; y++) {
+                for (let z = 0; z < wallAmountA; z++) {
+                    if(i >= 8 && i <= 14) {
+                        dummyObject2.position.set(testArray1[i], 1.05, testArray4[i - 8]);
+                    } else if(i > 21) {
+                        dummyObject2.position.set(testArray1[i], 1.05, testArray4[i - 15]);
+                    } else if(i >= 15) {
+                        dummyObject2.position.set(testArray1[i], 1.05, -1.5);
+                    } else if(i < 8) {
+                        dummyObject2.position.set(testArray1[i], 1.05, 26.7);
+                    }
+                    dummyObject2.rotation.x = Math.PI / 2 * -1;
+                    dummyObject2.rotation.z = Math.PI / 2 * -1;
+                    dummyObject2.updateMatrix();
+                    wallMeshA.setMatrixAt(i, dummyObject2.matrix);
+
+                    i++;
                 }
             }
-
-            // scene.add(instancedMesh);
-            // gltfGeometry = node;
-            // node.castShadow = true;
-            // node.receiveShadow = true;
         }
-    });
-    gltf.scene.position.set(-c.x, size.y / 2 - c.y, -c.z); // center the gltf scene
-    // console.log(dumpObject(gltf.scene).join("\n"));
-    wall1.add(gltf.scene);
-    wall2.add(gltf.scene.clone());
-    wall3.add(gltf.scene.clone());
+
+        // Salah hitungan index i, cek lagi
+        i = 0;
+        for (let x = 0; x < wallAmountB; x++) {
+            for (let y = 0; y < wallAmountB; y++) {
+                for (let z = 0; z < wallAmountB; z++) {
+                    if (i >= 6 && i <= 11) {
+                        dummyObject2.position.set(testArray2[i], 0.2, testArray3[i - 6]);
+                    } else if(i >= 18) {
+                        dummyObject2.position.set(testArray2[i], 0.2, testArray3[i - 12]);
+                    } else if(i >= 12) {
+                        dummyObject2.position.set(testArray2[i], 0.2, -1.5);
+                    } else {
+                        dummyObject2.position.set(testArray2[i], 0.2, 26.7);
+                    }
+                    dummyObject2.rotation.x = Math.PI / 2 * -1;
+
+                    if (i >= 6 && i < 12 || i >= 18) {
+                        dummyObject2.rotation.z = Math.PI * 2 * -1;
+                    } else if(i < 6 || i >= 12) {
+                        dummyObject2.rotation.z = Math.PI / 2 * -1;
+                    }
+
+                    dummyObject2.updateMatrix();
+                    wallMeshB.setMatrixAt(i, dummyObject2.matrix);
+
+                    i++;
+                }
+            }
+        }
+
+        wallMeshA.matrixAutoUpdate = false;
+        wallMeshB.matrixAutoUpdate = false;
+
+        wallMeshA.instanceMatrix.needsUpdate = true;
+        wallMeshB.instanceMatrix.needsUpdate = true;
+
+        if (boolTest) {
+            boolTest = false;
+            console.log("=================================================");
+            console.log(wallMeshB);
+        }
+    }
 }
-
-let length1 = 4.3;
-let length2 = 8.4615;
-let length3 = length2 + (length2 - length1);
-
-wall1.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
-wall1.position.set(4.3, 0, 24.7);
-wall1.rotation.y = -Math.PI / 2;
-scene.add(wall1);
-
-wall2.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
-wall2.position.set(8.4615, 0, 24.7);
-wall2.rotation.y = -Math.PI / 2; // radiant
-scene.add(wall2);
-
-wall3.scale.set(0.02, 0.02, 0.02); // because gltf.scene is very big
-wall3.position.set(length3, 0, 24.7);
-wall3.rotation.y = -Math.PI / 2; // radiant
-scene.add(wall3);
 
 function dumpObject(obj, lines = [], isLast = true, prefix = "") {
     const localPrefix = isLast ? "└─" : "├─";

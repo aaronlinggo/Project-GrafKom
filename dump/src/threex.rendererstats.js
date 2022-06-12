@@ -12,7 +12,6 @@ var THREEx = THREEx || {}
  * @param {Object} Camera the camera to update
  */
 THREEx.RendererStats = function () {
-
 	var msMin = 100;
 	var msMax = 0;
 
