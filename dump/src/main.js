@@ -320,7 +320,7 @@ let loader4 = new THREE.GLTFLoader();
 const wall1 = new THREE.Object3D();
 const wall2 = new THREE.Object3D();
 const wall3 = new THREE.Object3D();
-loader4.load("./models/modular_concrete_fence/scene3.gltf", processWall);
+loader4.load("./models/modular_concrete_fence/scene.gltf", processWall);
 
 function processWall(gltf) {
     const box = new THREE.Box3().setFromObject(gltf.scene);
