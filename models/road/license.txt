@@ -1,0 +1,11 @@
+Model Information:
+* title:	Road
+* source:	https://sketchfab.com/3d-models/road-93258ca24fcf46e5b354a1e7f6f92bf5
+* author:	Saidov (https://sketchfab.com/Saidov)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Road" (https://sketchfab.com/3d-models/road-93258ca24fcf46e5b354a1e7f6f92bf5) by Saidov (https://sketchfab.com/Saidov) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -1,0 +1,164 @@
+{
+	"accessors": [
+		{
+			"bufferView": 0,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 60,
+			"max": [
+				5.173871994018555,
+				7.6370930671691895,
+				0.26786598563194275
+			],
+			"min": [
+				-5.121780872344971,
+				-7.6370930671691895,
+				-0.26786598563194275
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 1,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 60,
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 60,
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 3,
+			"byteOffset": 0,
+			"componentType": 5123,
+			"count": 90,
+			"type": "SCALAR"
+		}
+	],
+	"asset": {
+		"extras": {
+			"created": "Sat Jun 18 14:22:22 2022"
+		},
+		"generator": "Gestaltor 2022.2.2 Tagliatelle Community",
+		"version": "2.0"
+	},
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 720,
+			"byteOffset": 0
+		},
+		{
+			"buffer": 0,
+			"byteLength": 720,
+			"byteOffset": 720
+		},
+		{
+			"buffer": 0,
+			"byteLength": 480,
+			"byteOffset": 1440
+		},
+		{
+			"buffer": 0,
+			"byteLength": 180,
+			"byteOffset": 1920
+		}
+	],
+	"buffers": [
+		{
+			"byteLength": 2100,
+			"uri": "scene_low.bin"
+		}
+	],
+	"images": [
+		{
+			"mimeType": "image/png",
+			"name": "Flooring_Stone_001_COLOR.png",
+			"uri": "textures/low_textures/Flooring_Stone_001_COLOR.png"
+		}
+	],
+	"materials": [
+		{
+			"doubleSided": true,
+			"name": ".001",
+			"pbrMetallicRoughness": {
+				"baseColorTexture": {
+					"index": 0
+				},
+				"metallicFactor": 0.0,
+				"roughnessFactor": 0.5
+			}
+		}
+	],
+	"meshes": [
+		{
+			"name": "Object_2.001",
+			"primitives": [
+				{
+					"attributes": {
+						"NORMAL": 1,
+						"POSITION": 0,
+						"TEXCOORD_0": 2
+					},
+					"indices": 3,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		}
+	],
+	"nodes": [
+		{
+			"mesh": 0,
+			"name": "Object_4.001",
+			"scale": [
+				1.0,
+				1.0,
+				0.30000001192092896
+			]
+		},
+		{
+			"children": [
+				0
+			],
+			"name": "road .obj.cleaner.materialmerger.gles"
+		},
+		{
+			"children": [
+				1
+			],
+			"name": "Sketchfab_model",
+			"rotation": [
+				1.0,
+				0.0,
+				0.0,
+				0.0
+			]
+		}
+	],
+	"samplers": [
+		{
+			"magFilter": 9729,
+			"minFilter": 9987
+		}
+	],
+	"scene": 0,
+	"scenes": [
+		{
+			"name": "Scene",
+			"nodes": [
+				2
+			]
+		}
+	],
+	"textures": [
+		{
+			"sampler": 0,
+			"source": 0
+		}
+	]
+}
