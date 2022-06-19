@@ -14,10 +14,67 @@ body {
 }
 
 body {
-    background-color: #ccc;
+    /* background-color: #23262e; */
+    font-family: "Courier New", Courier, monospace;
+    font-weight: bold;
 }
 
 /* GLOBAL STYLE */
 body {
     overflow: hidden;
+}
+
+#rendererStats {
+    cursor: pointer;
+    opacity: 0.8;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    min-width: 10vw;
+}
+
+#pointerLockOverlay {
+    background-color: #000;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+#controlsDetail {
+    background-color: #000;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.8;
+    display: block;
+    line-height: 22px;
+    padding: 8px 12px;
+    white-space: pre;
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 14vw;
+}
+
+#redLaserSight {
+    background-color: #f00;
+    border-radius: 100%;
+    display: none;
+    margin: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 6px;
+    height: 6px;
 }

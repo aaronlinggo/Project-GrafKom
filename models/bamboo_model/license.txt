@@ -1,0 +1,11 @@
+Model Information:
+* title:	Bamboo model - no texture
+* source:	https://sketchfab.com/3d-models/bamboo-model-no-texture-e7982e3935a74110bd7e94c70812840c
+* author:	Penny8999 (https://sketchfab.com/Penny8999)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Bamboo model - no texture" (https://sketchfab.com/3d-models/bamboo-model-no-texture-e7982e3935a74110bd7e94c70812840c) by Penny8999 (https://sketchfab.com/Penny8999) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
