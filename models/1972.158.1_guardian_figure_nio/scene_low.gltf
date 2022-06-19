@@ -1,0 +1,250 @@
+{
+	"accessors": [
+		{
+			"bufferView": 0,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 41767,
+			"max": [
+				0.42454099655151367,
+				-0.24516500532627106,
+				0.362650990486145
+			],
+			"min": [
+				-0.47077900171279907,
+				-2.0893681049346924,
+				-0.3299719989299774
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 1,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 41767,
+			"max": [
+				0.9999558925628662,
+				0.9999244809150696,
+				0.9999667406082153
+			],
+			"min": [
+				-0.999965250492096,
+				-0.9999993443489075,
+				-0.9998972415924072
+			],
+			"type": "VEC3"
+		},
+		{
+			"bufferView": 2,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 41767,
+			"max": [
+				0.9999784827232361,
+				0.9999940991401672,
+				0.9995425939559937,
+				1.0
+			],
+			"min": [
+				-0.9999518394470215,
+				-0.999994695186615,
+				-0.9995927810668945,
+				-1.0
+			],
+			"type": "VEC4"
+		},
+		{
+			"bufferView": 3,
+			"byteOffset": 0,
+			"componentType": 5126,
+			"count": 41767,
+			"max": [
+				0.9969890117645264,
+				0.9938409924507141
+			],
+			"min": [
+				0.0031689999159425497,
+				0.006666000001132488
+			],
+			"type": "VEC2"
+		},
+		{
+			"bufferView": 4,
+			"byteOffset": 0,
+			"componentType": 5125,
+			"count": 239988,
+			"type": "SCALAR"
+		}
+	],
+	"asset": {
+		"extras": {
+			"author": "Cleveland Museum of Art (https://sketchfab.com/clevelandart)",
+			"created": "Sun Jun 19 21:23:04 2022",
+			"license": "CC0-1.0 (http://creativecommons.org/publicdomain/zero/1.0/)",
+			"source": "https://sketchfab.com/3d-models/19721581-guardian-figure-nio-edc2b197b0114e11b5815eb07cbf5f7a",
+			"title": "1972.158.1 Guardian Figure: Nio"
+		},
+		"generator": "Gestaltor 2022.2.2 Tagliatelle Community",
+		"version": "2.0"
+	},
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 501204,
+			"byteOffset": 0,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 501204,
+			"byteOffset": 501204,
+			"byteStride": 12,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 668272,
+			"byteOffset": 1002408,
+			"byteStride": 16,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 334136,
+			"byteOffset": 1670680,
+			"byteStride": 8,
+			"target": 34962
+		},
+		{
+			"buffer": 0,
+			"byteLength": 959952,
+			"byteOffset": 2004816,
+			"target": 34963
+		}
+	],
+	"buffers": [
+		{
+			"byteLength": 2964768,
+			"uri": "scene_low.bin"
+		}
+	],
+	"images": [
+		{
+			"mimeType": "image/jpeg",
+			"uri": "textures/low_textures/Material.002_baseColor.jpeg"
+		},
+		{
+			"mimeType": "image/png",
+			"uri": "textures/low_textures/Material.002_metallicRoughness.png"
+		},
+		{
+			"mimeType": "image/png",
+			"uri": "textures/low_textures/Material.002_normal.png"
+		}
+	],
+	"materials": [
+		{
+			"name": "Material.002",
+			"normalTexture": {
+				"index": 2
+			},
+			"occlusionTexture": {
+				"index": 1
+			},
+			"pbrMetallicRoughness": {
+				"baseColorTexture": {
+					"index": 0
+				},
+				"metallicRoughnessTexture": {
+					"index": 1
+				}
+			}
+		}
+	],
+	"meshes": [
+		{
+			"name": "Object_0",
+			"primitives": [
+				{
+					"attributes": {
+						"NORMAL": 1,
+						"POSITION": 0,
+						"TANGENT": 2,
+						"TEXCOORD_0": 3
+					},
+					"indices": 4,
+					"material": 0,
+					"mode": 4
+				}
+			]
+		}
+	],
+	"nodes": [
+		{
+			"children": [
+				1
+			],
+			"matrix": [
+				0.9834467768669128,
+				2.6356058811083092e-17,
+				-0.1811971366405487,
+				0.0,
+				1.3363942084155793e-18,
+				-0.9999999999999996,
+				-1.3820188717369206e-16,
+				0.0,
+				-0.18119713664054868,
+				1.3567204969390431e-16,
+				-0.9834467768669126,
+				0.0,
+				0.0,
+				-0.25,
+				0.0,
+				1.0
+			],
+			"name": "Sketchfab_model"
+		},
+		{
+			"children": [
+				2
+			],
+			"name": "Guardian 1.obj.cleaner.materialmerger.gles"
+		},
+		{
+			"mesh": 0,
+			"name": "Object_2"
+		}
+	],
+	"samplers": [
+		{
+			"magFilter": 9729,
+			"minFilter": 9987,
+			"wrapS": 10497,
+			"wrapT": 10497
+		}
+	],
+	"scene": 0,
+	"scenes": [
+		{
+			"name": "Sketchfab_Scene",
+			"nodes": [
+				0
+			]
+		}
+	],
+	"textures": [
+		{
+			"sampler": 0,
+			"source": 0
+		},
+		{
+			"sampler": 0,
+			"source": 1
+		},
+		{
+			"sampler": 0,
+			"source": 2
+		}
+	]
+}
