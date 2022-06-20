@@ -1,493 +1,1268 @@
-const color_lantern = 0xf04e03;
-const color_sun = 0x994a0e;
-// const color_sun = 0xc46c29;
-const speed = 200;
-const pointer = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
+// Debugging Utility
+function dumpObject(obj, lines = [], isLast = true, prefix = "") {
+    const localPrefix = isLast ? "└─" : "├─";
+    lines.push(`${prefix}${prefix ? localPrefix : ""}${obj.name || "*no-name*"} [${obj.type}]`);
+    const newPrefix = prefix + (isLast ? "  " : "│ ");
+    const lastNdx = obj.children.length - 1;
+    obj.children.forEach((child, ndx) => {
+        const isLast = ndx === lastNdx;
+        dumpObject(child, lines, isLast, newPrefix);
+    });
+    return lines;
+}
 
-let color_red_fog = 216;
-let color_green_fog = 184;
-let color_blue_fog = 140;
+const script = document.createElement("script");
+script.onload = () => {
+    const stats = new Stats();
+    document.body.appendChild(stats.dom);
+    requestAnimationFrame(function loop() {
+        stats.update();
+        requestAnimationFrame(loop)
+    });
+};
+script.src = "./src/stats.min.js";
+document.head.appendChild(script);
 
-let color_fog = new THREE.Color('rgb(' + color_red_fog + ', ' + color_green_fog + ', ' + color_blue_fog + ')');
+const rendererStats = new THREEx.RendererStats();
+rendererStats.domElement.id = "rendererStats";
+document.body.appendChild(rendererStats.domElement);
 
-const red_color = Math.floor(216/54);
-const green_color =  Math.floor(184/54);
-const blue_color =  Math.floor(140/54);
-
-let offsetY = 2.5;
+// Overlay Setup
+let cameraControls = false;
+let disableClick = false;
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let canJump = false;
-let camControls = false;
-let posXMouse = (window.innerWidth/2);
-let posYMouse = (window.innerHeight/2);
 
-let prevTime = performance.now();
-let time;
-let delta;
-let velocity = new THREE.Vector3();
-let direction = new THREE.Vector3();
-let startWebGL = false;
-
-let ctrDay = 0;
-let ctrTimeDay = 0;
-
-let lamps = [true, true, true, true];
-
-let overlay = document.createElement("div");
-overlay.setAttribute("id", "pointerLockOverlay");
-overlay.style.position = "absolute";
-overlay.style.top = "0px";
-overlay.style.left = "0px";
-overlay.style.width = "100vw";
-overlay.style.height = "100vh";
-overlay.style.zIndex = "1";
-overlay.style.background = "#000";
-overlay.style.opacity = "0.9";
-overlay.style.color = "#fff";
-overlay.style.textAlign = "center";
-overlay.style.verticalAlign = "middle";
-overlay.style.lineHeight = "100vh";
-overlay.textContent = "Click to enable controls!";
-overlay.style.display = "block";
+const overlay = document.createElement("div");
+overlay.id = "pointerLockOverlay";
+overlay.innerHTML = "Click to enable controls!";
+overlay.addEventListener("click", () => {
+    if (disableClick) return;
+    if (!fpsControls.isLocked) fpsControls.lock();
+}, false);
 document.body.appendChild(overlay);
 
-let detail = document.createElement("div");
-detail.setAttribute("id", "detail");
-detail.style.position = "absolute";
-detail.style.top = "0px";
-detail.style.left = (window.innerWidth - 250) + "px";
-detail.style.width = "20vw";
-detail.style.height = "10vh";
-detail.style.zIndex = "1";
-detail.style.background = "#000";
-detail.style.opacity = "0.8";
-detail.style.color = "#fff";
-detail.style.textAlign = "center";
-detail.style.verticalAlign = "middle";
-detail.style.display = "table-cell";
-detail.style.whiteSpace = "pre";
-detail.textContent = "Press 'W' for forward\r\nPress 'S' for backward\r\nPress 'A' for left\r\nPress 'D' for right";
-detail.style.display = "block";
+const controlsCommand = [];
+controlsCommand.push("Press W to moving forward");
+controlsCommand.push("Press S to moving backward");
+controlsCommand.push("Press A to moving left");
+controlsCommand.push("Press D to moving right");
+controlsCommand.push("Hold Left Mouse Button to rotate camera");
+controlsCommand.push("Hold Right Mouse Button to drag camera");
+controlsCommand.push("Scroll Mouse Wheel Up to zoom camera in");
+controlsCommand.push("Scroll Mouse Wheel Down to zoom camera out");
+
+const detail = document.createElement("div");
+detail.id = "controlsDetail";
+detail.innerHTML = controlsCommand[0] + "\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3];
 document.body.appendChild(detail);
 
-let dot = document.createElement("div");
-dot.setAttribute("id", "dot");
-dot.style.position = "absolute";
-dot.style.top = (window.innerHeight / 2) + "px";
-dot.style.left = (window.innerWidth / 2) + "px";
-dot.style.width = "5px";
-dot.style.height = "5px";
-dot.style.zIndex = "0";
-dot.style.background = "green";
-dot.style.display = "none";
+const dot = document.createElement("div");
+dot.id = "redLaserSight";
 document.body.appendChild(dot);
 
-var cam = new THREE.PerspectiveCamera(
-    45,
-    window.innerWidth / window.innerHeight,
-    1,
-    1000
-);
-cam.position.x = -25;
-cam.position.z = 40;
-cam.position.y = 4;
-cam.lookAt(0, 5, 5);
+// World Setup
+const borderRadius = 60;
+const cameraSpeed = 200;
+const fogDensity = 0.011;
+const gradientPoint = 54;
+const lanternColor = 0xf04e03;
+const lightIntensity = 1;
+const lightRadius = 100;
 
-var renderer = new THREE.WebGL1Renderer({
-    powerPreference: "high-performance", // "high-performance", "low-power" or "default". 
-    antialias: true, // Should be true
+let fogRedColor = 216;
+let fogGreenColor = 183;
+let fogBlueColor = 140;
+let fogColor = new THREE.Color("rgb(" + fogRedColor + ", " + fogGreenColor + ", " + fogBlueColor + ")");
+
+const redColorSample = Math.floor(fogRedColor / gradientPoint);
+const greenColorSample = Math.floor(fogGreenColor / gradientPoint);
+const blueColorSample = Math.floor(fogBlueColor / gradientPoint);
+const clock = new THREE.Clock();
+const direction = new THREE.Vector3();
+const mousePointer = new THREE.Vector2(1, 1);
+const raycaster = new THREE.Raycaster();
+
+let delta, mixerA, mixerB, time;
+let ctrDay = 0;
+let ctrTimeDay = 0;
+let prevTime = performance.now();
+let velocity = new THREE.Vector3();
+let lampsVisible = [true, true, true, true];
+let startWebGL = false;
+
+const renderer = new THREE.WebGL1Renderer({
+    powerPreference: "high-performance", // "high-performance", "low-power", "default"
+    antialias: true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true; // Should be true
-renderer.shadowMapSoft = true; // should be true
+renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMapSoft = true;
 document.body.appendChild(renderer.domElement);
 
-var scene = new THREE.Scene();
-
-// add fog
-fogColor = new THREE.Color(color_fog);
+const scene = new THREE.Scene();
 scene.background = fogColor;
-console.log(scene.background)
-scene.fog = new THREE.FogExp2(fogColor, 0.011);
+scene.fog = new THREE.FogExp2(fogColor, fogDensity);
 
-var textureLoader = new THREE.TextureLoader();
-const tilesBaseColor = textureLoader.load(
-    "./dump/textures/Dirt_006_SD/Dirt_006_Base Color.jpg",
-    (texture) => {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set(0, 0);
-        texture.repeat.set(20, 20);
-    }
-);
-const tilesAmbientMap = textureLoader.load(
-    "./dump/textures/Dirt_006_SD/Dirt_006_Ambient Occlusion.jpg",
-    (texture) => {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set(0, 0);
-        texture.repeat.set(20, 20);
-    }
-);
-const tilesHeightMap = textureLoader.load(
-    "./dump/textures/Dirt_006_SD/Dirt_006_Height.png",
-    (texture) => {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set(0, 0);
-        texture.repeat.set(20, 20);
-    }
-);
-const tilesNormalMap = textureLoader.load(
-    "./dump/textures/Dirt_006_SD/Dirt_006_Normal.jpg",
-    (texture) => {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set(0, 0);
-        texture.repeat.set(20, 20);
-    }
-);
-const tilesRoughnessMap = textureLoader.load(
-    "./dump/textures/Dirt_006_SD/Dirt_006_Roughness.jpg",
-    (texture) => {
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.offset.set(0, 0);
-        texture.repeat.set(20, 20);
-    }
-);
-
-var plane = new THREE.PlaneGeometry(100, 100, 25, 25);
-var planeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x61523c,
-    map: tilesBaseColor,
-    normalMap: tilesNormalMap,
-    displacementMap: tilesHeightMap,
-    displacementScale: 0.2,
-    roughnessMap: tilesRoughnessMap,
-    roughness: 1.5,
-    aoMap: tilesAmbientMap,
-});
-var planeMesh = new THREE.Mesh(plane, planeMaterial);
-planeMesh.receiveShadow = true;
-planeMesh.position.set(0, 0, 0);
-planeMesh.rotation.x -= Math.PI / 2;
-scene.add(planeMesh);
-
-var ambient = new THREE.AmbientLight(0x404040, 1.5);
+const ambient = new THREE.AmbientLight(0x404040, 1.5);
 scene.add(ambient);
 
-var pointLight1 = new THREE.PointLight(color_lantern);
-pointLight1.position.set(-17.5, 2.5, -28.5);
-pointLight1.add(
-    new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 10, 10),
-        new THREE.MeshBasicMaterial({
-            color: color_lantern,
-        })
-    )
-);
-pointLight1.castShadow = true;
-pointLight1.shadow.radius = 100;
-scene.add(pointLight1);
-// scene.add(new THREE.PointLightHelper(pointLight1, 0.1, 0xff00ff));
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+camera.position.set(0, 4, 53.5);
+camera.lookAt(0, 4, 4);
 
-var pointLight2 = new THREE.PointLight(color_lantern);
-pointLight2.position.set(-17.5, 2.5, 24.5);
-pointLight2.add(
-    new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 10, 10),
-        new THREE.MeshBasicMaterial({
-            color: color_lantern,
-        })
-    )
-);
-pointLight2.castShadow = true;
-pointLight2.shadow.radius = 100;
-scene.add(pointLight2);
-// scene.add(new THREE.PointLightHelper(pointLight2, 0.1, 0xff00ff));
-
-var pointLight3 = new THREE.PointLight(color_lantern);
-pointLight3.position.set(17.5, 2.5, 24.5);
-pointLight3.add(
-    new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 10, 10),
-        new THREE.MeshBasicMaterial({
-            color: color_lantern,
-        })
-    )
-);
-pointLight3.castShadow = true;
-pointLight3.shadow.radius = 100;
-scene.add(pointLight3);
-// scene.add(new THREE.PointLightHelper(pointLight3, 0.1, 0xff00ff));
-
-var pointLight4 = new THREE.PointLight(color_lantern);
-pointLight4.position.set(17.5, 2.5, -28.5);
-pointLight4.add(
-    new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 10, 10),
-        new THREE.MeshBasicMaterial({
-            color: color_lantern,
-        })
-    )
-);
-pointLight4.castShadow = true;
-pointLight4.shadow.radius = 100;
-scene.add(pointLight4);
-// scene.add(new THREE.PointLightHelper(pointLight4, 0.1, 0xff00ff));
-
-var spotlight = new THREE.SpotLight(color_sun, 8, 125, Math.PI/4);
-spotlight.position.set(0, 80, 0);
-spotlight.target.position.set(0, 0, 0);
-spotlight.castShadow = true;
-spotlight.add(
-    new THREE.Mesh(
-        new THREE.SphereGeometry(4, 32, 32),
-        new THREE.MeshBasicMaterial({
-            color: 0xd15e06,
-        })
-    )
-);
-scene.add(spotlight);
-scene.add(new THREE.SpotLightHelper(spotlight));
-
-// adding resizing event listener
 window.addEventListener("resize", () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
-    cam.aspect = window.innerWidth / window.innerHeight;
-    cam.updateProjectionMatrix();
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 });
 
-// Orbit Controls
-const orbitControls = new THREE.OrbitControls( cam, renderer.domElement );
+const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+orbitControls.target.set(0, 4, 0);
 orbitControls.update();
 orbitControls.enabled = false;
 
-// First Person Controls
-let fpsControls = new THREE.PointerLockControls(cam, renderer.domElement);
+const fpsControls = new THREE.PointerLockControls(camera, renderer.domElement);
 fpsControls.pointerSpeed = 0.5;
-
-const overlayOnClik = () => {
-    if (!fpsControls.isLocked) {
-        fpsControls.lock();
-        overlay.style.display = "none";
-        dot.style.display = "block";
+fpsControls.addEventListener("lock", () => {
+    overlay.style.display = "none";
+    dot.style.display = "block";
+    startWebGL = true;
+}, false);
+fpsControls.addEventListener("unlock", () => {
+    if (!cameraControls) {
+        overlay.removeAttribute("style");
+        dot.removeAttribute("style");
+        startWebGL = false;
+        disableClick = true;
+        velocity = new THREE.Vector3();
+        setTimeout(() => disableClick = false, 1250);
     }
+}, false);
+
+const manager = new THREE.LoadingManager();
+manager.onStart = (url, itemsLoaded, itemsTotal) => {
+    console.log("Started loading file: " + url + ".\nLoaded " + itemsLoaded + " of " + itemsTotal + " files.");
+};
+manager.onLoad = () => {
+    console.log("Loading complete!");
+    animateScene();
+};
+manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+    console.log("Loading file: " + url + ".\nLoaded " + itemsLoaded + " of " + itemsTotal + " files.");
+};
+manager.onError = (url) => {
+    console.log("There was an error loading " + url + "!");
 };
 
-overlay.addEventListener("click", overlayOnClik, false);
+const textureLoader = new THREE.TextureLoader(manager);
+var repeatCount = 20;
 
-fpsControls.addEventListener(
-    "lock",
-    () => {
-        overlay.style.display = "none";
-        dot.style.display = "block";
-        startWebGL = true;
-    },
-    false
+function repeatTexture(texture) {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatCount, repeatCount);
+}
+
+const groundBaseColorMap = textureLoader.load("./textures/Dirt_006/low_textures/Dirt_006_baseColor.jpg", repeatTexture);
+const groundAoMap = textureLoader.load("./textures/Dirt_006/low_textures/Dirt_006_ambientOcclusion.jpg", repeatTexture);
+const groundHeightMap = textureLoader.load("./textures/Dirt_006/low_textures/Dirt_006_height.png", repeatTexture);
+const groundNormalMap = textureLoader.load("./textures/Dirt_006/low_textures/Dirt_006_normal.jpg", repeatTexture);
+const groundRoughnessMap = textureLoader.load("./textures/Dirt_006/low_textures/Dirt_006_roughness.jpg", repeatTexture);
+const groundMesh = new THREE.Mesh(
+    new THREE.PlaneBufferGeometry(100, 100, 25, 25),
+    new THREE.MeshStandardMaterial({
+        color: 0x61523c,
+        map: groundBaseColorMap,
+        aoMap: groundAoMap,
+        displacementMap: groundHeightMap,
+        displacementScale: 0.25,
+        normalMap: groundNormalMap,
+        roughnessMap: groundRoughnessMap,
+        roughness: 1.5
+    })
 );
+groundMesh.receiveShadow = true;
+groundMesh.rotation.x -= Math.PI / 2;
+scene.add(groundMesh);
 
-fpsControls.addEventListener(
-    "unlock",
-    () => {
-        if (!camControls){
-            overlay.style.display = "block";
-            dot.style.display = "none";
-            startWebGL = false;
-            velocity = new THREE.Vector3();
+// Load Models
+const objectLoader = new THREE.GLTFLoader(manager);
+const dummyObjectA = new THREE.Object3D();
+const dummyObjectB = new THREE.Object3D();
+const dummyObjectC = new THREE.Object3D();
+const dummyObjectD = new THREE.Object3D();
 
+const clippedHeightWallA = 1.05;
+const clippedHeightWallB = 0.25;
+const wallAmountA = 52;
+const wallAmountB = 50;
+let wallPositionA = [];
+let wallPositionB = [];
+let wallMeshA, wallMeshB;
+
+const clippedHeightLantern = 1.8;
+const clippedHeightPointLight = 2.525;
+const lanternAmount = 4;
+let lanternPosition = [];
+let lanternMesh;
+
+const clippedHeightFloor = 0.15;
+const pavedAmount = 64;
+let floorPosition = [];
+let pavedMesh;
+
+const clippedHeightBambooA = 0.2;
+const clippedHeightBambooB = 2;
+const clippedHeightBambooC = 1;
+const bambooAmount = 138;
+let bambooPosition = [];
+let bambooMesh;
+
+let nioPosition = [-5.5, -0.75, 43];
+let gateMesh, nioMeshA, nioMeshB;
+
+const panelGeometry = new THREE.BoxBufferGeometry(0.5, 3, 3);
+const panelMaterial = new THREE.MeshBasicMaterial({
+    map: textureLoader.load("textures/black-g444986ca3_low.jpg")
+});
+const panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
+panelMesh.position.set(-23.1975, 4, 40);
+panelMesh.rotation.y = Math.PI / 2;
+panelMesh.castShadow = true;
+panelMesh.receiveShadow = true;
+scene.add(panelMesh);
+
+const fontLoader = new THREE.FontLoader(manager);
+fontLoader.load("./Oswald_Bold.json", (font) => {
+    const fontGeometry1 = new THREE.TextGeometry("Top Left", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry2 = new THREE.TextGeometry("Top Right", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry3 = new THREE.TextGeometry("Bottom Left", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry4 = new THREE.TextGeometry("Bottom Right", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry5 = new THREE.TextGeometry("Change Camera Control", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry6 = new THREE.TextGeometry("Control Panel", {
+        font: font,
+        size: 0.2,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+
+    const textMesh1 = new THREE.Mesh(fontGeometry1, new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    }));
+    textMesh1.position.set(-24, 4.4, 40.2);
+
+    const textMesh2 = textMesh1.clone();
+    textMesh2.position.set(-22.925, 4.4, 40.2);
+    textMesh2.geometry = fontGeometry2;
+
+    const textMesh3 = textMesh1.clone();
+    textMesh3.position.set(-24, 3.9, 40.2);
+    textMesh3.geometry = fontGeometry3;
+
+    const textMesh4 = textMesh1.clone();
+    textMesh4.position.set(-23.15, 3.9, 40.2);
+    textMesh4.geometry = fontGeometry4;
+
+    const textMesh5 = textMesh1.clone();
+    textMesh5.position.set(-23.725, 2.95, 40.2);
+    textMesh5.geometry = fontGeometry5;
+
+    const textMesh6 = textMesh1.clone();
+    textMesh6.position.set(-23.9825, 5, 40.2);
+    textMesh6.geometry = fontGeometry6;
+
+    scene.add(textMesh1);
+    scene.add(textMesh2);
+    scene.add(textMesh3);
+    scene.add(textMesh4);
+    scene.add(textMesh5);
+    scene.add(textMesh6);
+});
+
+const buttonGeometry = new THREE.BoxBufferGeometry(0.1, 0.2, 0.2);
+const buttonMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff // Must be set to white so it doesn't affect setColorAt method
+});
+const buttonAmount = 5;
+const buttonMesh = new THREE.InstancedMesh(buttonGeometry, buttonMaterial, buttonAmount);
+const buttonColor = new THREE.Color();
+let buttonPosition = [];
+buttonMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(buttonMesh);
+
+const lampsGeometry = new THREE.SphereBufferGeometry(0.1, 10, 10);
+const lampsMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff // Must be set to white so it doesn't affect setColorAt method
+});
+const lampsAmount = 4;
+const lampsMesh = new THREE.InstancedMesh(lampsGeometry, lampsMaterial, lampsAmount);
+const lampsColor = new THREE.Color();
+const scaleLamps = new THREE.Object3D();
+lampsMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(lampsMesh);
+
+function instancingObject(gltf, name, amount = 1, scale = [1, 1, 1]) {
+    const object3D = gltf.scene.getObjectByName(name);
+    const objectMaterial = object3D.children[0].material;
+    const objectGeometry = object3D.children[0].geometry.clone();
+    objectGeometry.applyMatrix4(new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(scale[0], scale[1], scale[2])));
+
+    const objectMesh = new THREE.InstancedMesh(objectGeometry, objectMaterial, amount);
+    objectMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    objectMesh.castShadow = true;
+    objectMesh.receiveShadow = true;
+
+    return objectMesh;
+}
+
+objectLoader.load("./models/shitennoji/scene_low.gltf", (gltf) => {
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material.metalness = 0.15;
         }
-    },
-    false
-);
+    });
+    gltf.scene.position.set(0, -0.45, -23.9);
+    gltf.scene.scale.set(0.0085, 0.0085, 0.0085);
+    // console.log(gltf.scene);
+    scene.add(gltf.scene);
+});
+objectLoader.load("./models/japanese_lowpoly_temple/scene_low.gltf", (gltf) => {
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material.metalness = 0.15;
+        }
+    });
+    gltf.scene.position.set(0, 0, 11.6);
+    gltf.scene.rotation.y = -Math.PI / 2 * -1;
+    gltf.scene.scale.set(0.5, 0.5, 0.5);
+    // console.log(gltf.scene);
+    scene.add(gltf.scene);
+});
+objectLoader.load("./models/modular_concrete_fence/scene_low.gltf", (gltf) => {
+    wallMeshA = instancingObject(gltf, "Cube", wallAmountA, scale = [0.03, 0.03, 0.03]);
+    wallMeshA.material.metalness = 0.0;
+    wallMeshA.material.roughness = 0.975;
+    scene.add(wallMeshA);
 
-const onKeyDown = function (event) {
-    switch (event.keyCode) {
-        case 38: // up
-        case 87: // w
-            moveForward = true;
-            break;
+    wallMeshB = instancingObject(gltf, "Cube001", wallAmountB, scale = [0.04, 0.04, 0.04]);
+    wallMeshB.material.metalness = 0.0;
+    wallMeshB.material.roughness = 0.975;
+    scene.add(wallMeshB);
 
-        case 37: // left
-        case 65: // a
-            moveLeft = true;
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(wallMeshA);
+    // console.log(wallMeshB);
+});
+objectLoader.load("./models/old_japanese_lantern/scene_low.gltf", (gltf) => {
+    lanternMesh = instancingObject(gltf, "Tourou_low", lanternAmount, scale = [1.75, 1.75, 1.75]);
+    lanternMesh.material.metalness = 0.0;
+    lanternMesh.material.roughness = 0.85;
+    scene.add(lanternMesh);
 
-        case 40: // down
-        case 83: // s
-            moveBackward = true;
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(lanternMesh);
+});
+objectLoader.load("./models/road/scene_low.gltf", (gltf) => {
+    pavedMesh = instancingObject(gltf, "road_objcleanermaterialmergergles", pavedAmount, scale = [0.325, 0.325, 0.325]);
+    pavedMesh.material.metalness = 0.0;
+    pavedMesh.material.roughness = 0.85;
+    scene.add(pavedMesh);
 
-        case 39: // right
-        case 68: // d
-            moveRight = true;
-            break;
-    }
-};
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(pavedMesh);
+});
+objectLoader.load("./models/bamboo_model/scene_low.gltf", (gltf) => {
+    bambooMesh = instancingObject(gltf, "Circle001", bambooAmount, scale = [0.3, 0.3, 0.3]);
+    bambooMesh.material.metalness = 0.0;
+    bambooMesh.material.roughness = 0.75;
+    scene.add(bambooMesh);
 
-const onKeyUp = function (event) {
-    switch (event.keyCode) {
-        case 38: // up
-        case 87: // w
-            moveForward = false;
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(bambooMesh);
+});
+objectLoader.load("./models/japanese_gate/scene_low.gltf", (gltf) => {
+    gateMesh = instancingObject(gltf, "Roof_rtop_main_low", 1, scale = [6.5, 6.5, 6.5]);
+    gateMesh.material.metalness = 0.0;
+    gateMesh.material.roughness = 0.8;
+    scene.add(gateMesh);
 
-        case 37: // left
-        case 65: // a
-            moveLeft = false;
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(gateMesh);
+});
+objectLoader.load("./models/1972.158.2_guardian_figure_nio/scene_low.gltf", (gltf) => {
+    nioMeshA = instancingObject(gltf, "Guardian_2objcleanermaterialmergergles", 1, scale = [3.5, 3.5, 3.5]);
+    nioMeshA.material.metalness = 0.0;
+    nioMeshA.material.roughness = 0.8;
+    scene.add(nioMeshA);
 
-        case 40: // down
-        case 83: // s
-            moveBackward = false;
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(nioMeshA);
+});
+objectLoader.load("./models/1972.158.1_guardian_figure_nio/scene_low.gltf", (gltf) => {
+    nioMeshB = instancingObject(gltf, "Guardian_1objcleanermaterialmergergles", 1, scale = [3.5, 3.5, 3.5]);
+    nioMeshB.material.metalness = 0.0;
+    nioMeshB.material.roughness = 0.8;
+    scene.add(nioMeshB);
 
-        case 39: // right
-        case 68: // d
-            moveRight = false;
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(nioMeshB);
+});
+objectLoader.load("./models/sakura_tree/scene_low.gltf", (gltf) => {
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+    gltf.scene.position.set(-32.4625, 0, -5.2);
+    scene.add(gltf.scene);
 
-        case 27: // esc
-            // if (fpsControls.isLocked) {
-            //     fpsControls.unlock();
-            //     overlay.style.display = "block";
-            //     dot.style.display = "none";
-            // }
-            break;
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(gltf.scene);
 
-    }
-};
+    mixerA = new THREE.AnimationMixer(gltf.scene);
+    gltf.animations[0].optimize();
+    gltf.animations.forEach((clip) => {
+        mixerA.clipAction(clip).play();
+    });
+});
+objectLoader.load("./models/sakura_tree/scene_low.gltf", (gltf) => {
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+    gltf.scene.position.set(32.4625, 0, -5.2);
+    scene.add(gltf.scene);
 
-document.body.addEventListener("keydown", onKeyDown, false);
-document.body.addEventListener("keyup", onKeyUp, false);
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(gltf.scene);
 
-let objectLoader = new THREE.GLTFLoader();
-var dummyObject = new THREE.Object3D();
-var dummyObject2 = new THREE.Object3D();
+    mixerB = new THREE.AnimationMixer(gltf.scene);
+    gltf.animations[0].optimize();
+    gltf.animations.forEach((clip) => {
+        mixerB.clipAction(clip).play();
+    });
+});
 
-const tourouAmount = 4;
+function drawStoneWall() {
+    if (wallMeshA && wallMeshB) {
+        let idx = 0;
+        for (let i = 0; i < wallAmountA; i++) {
+            dummyObjectA.position.set(wallPositionA[idx][0], wallPositionA[idx][1], wallPositionA[idx][2]);
+            dummyObjectA.rotation.x = Math.PI / 2 * -1;
+            dummyObjectA.rotation.z = Math.PI / 2 * -1;
+            dummyObjectA.updateMatrix();
+            wallMeshA.setMatrixAt(idx, dummyObjectA.matrix);
+            idx++;
+        }
+        wallMeshA.matrixAutoUpdate = false;
+        wallMeshA.instanceMatrix.needsUpdate = false;
 
-let tourouMeshA, tourouGeometryA, tourouMaterialA;
-let tourouMeshB, tourouGeometryB, tourouMaterialB;
-let tourouMeshC, tourouGeometryC, tourouMaterialC;
+        idx = 0;
+        for (let i = 0; i < wallAmountB; i++) {
+            dummyObjectA.position.set(wallPositionB[idx][0], wallPositionB[idx][1], wallPositionB[idx][2]);
+            dummyObjectA.rotation.x = Math.PI / 2 * -1;
 
-objectLoader.load("./dump/models/old_japanese_lantern/scene.gltf",
-    (gltf) => {
-        const objectScene = gltf.scene;
-
-        console.log(dumpObject(objectScene).join("\n"));
-
-        const _tourouMeshA = objectScene.getObjectByName("Tourou_a_low");
-        const _tourouMeshB = objectScene.getObjectByName("Tourou_b_low");
-        const _tourouMeshC = objectScene.getObjectByName("Tourou_c_low");
-
-        console.log(_tourouMeshA);
-        console.log(_tourouMeshB);
-        console.log(_tourouMeshC);
-
-        tourouGeometryA = _tourouMeshA.children[0].geometry.clone();
-        tourouGeometryB = _tourouMeshB.children[0].geometry.clone();
-        tourouGeometryC = _tourouMeshC.children[0].geometry.clone();
-
-        const defaultTransform = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(1.75, 1.75, 1.75));
-
-        tourouGeometryA.applyMatrix4(defaultTransform);
-        tourouGeometryB.applyMatrix4(defaultTransform);
-        tourouGeometryC.applyMatrix4(defaultTransform);
-
-        tourouMaterialA = _tourouMeshA.children[0].material;
-        tourouMaterialB = _tourouMeshB.children[0].material;
-        tourouMaterialC = _tourouMeshC.children[0].material;
-
-        tourouMeshA = new THREE.InstancedMesh(tourouGeometryA, tourouMaterialA, tourouAmount);
-        tourouMeshB = new THREE.InstancedMesh(tourouGeometryB, tourouMaterialB, tourouAmount);
-        tourouMeshC = new THREE.InstancedMesh(tourouGeometryC, tourouMaterialC, tourouAmount);
-
-        tourouMeshA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        tourouMeshB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        tourouMeshC.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-
-        scene.add(tourouMeshA);
-        scene.add(tourouMeshB);
-        scene.add(tourouMeshC);
-
-        tourouMeshA.castShadow = true;
-        tourouMeshA.receiveShadow = true;
-        tourouMeshB.castShadow = true;
-        tourouMeshB.receiveShadow = true;
-        tourouMeshC.castShadow = true;
-        tourouMeshC.receiveShadow = true;
-
-        console.log(tourouMeshA);
-        console.log(tourouMeshB);
-        console.log(tourouMeshC);
-
-        animate();
-    },
-
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100) + "% loaded!");
-    },
-
-    (error) => {
-        console.log("Error has occured when loading model!");
-    }
-);
-
-function drawStoneLantern() {
-    if (tourouMeshA && tourouMeshB && tourouMeshC) {
-        let i = 0;
-        const amount = 4;
-        const offset = (amount - 1) / 2;
-
-        let testArray = [];
-        testArray.push([-7.5, 0]);
-        testArray.push([-7.5, 21.5]);
-        testArray.push([7.5, 21.5]);
-        testArray.push([7.5, 0]);
-
-        let testArray1 = [];
-        testArray1.push(-17.5);
-        testArray1.push(-17.5);
-        testArray1.push(17.5);
-        testArray1.push(17.5);
-
-        let testArray2 = [];
-        testArray2.push(-28.5);
-        testArray2.push(24.5);
-        testArray2.push(24.5);
-        testArray2.push(-28.5);
-
-        // console.log(testArray[1][1]);
-
-        for (let x = 0; x < amount; x++) {
-            for (let y = 0; y < amount; y++) {
-                for (let z = 0; z < amount; z++) {
-                    // let slot1 = testArray[i][0];
-                    // let slot2 = testArray[i][1];
-                    dummyObject.position.set(testArray1[i], 1.75, testArray2[i]);
-                    dummyObject.updateMatrix();
-                    tourouMeshA.setMatrixAt(i, dummyObject.matrix);
-                    tourouMeshB.setMatrixAt(i, dummyObject.matrix);
-                    tourouMeshC.setMatrixAt(i, dummyObject.matrix);
-
-                    i++;
-                }
+            if (idx == 0) {
+                dummyObjectA.rotation.z = Math.PI / 2;
+            } else if (idx == 12 || idx == 48) {
+                dummyObjectA.rotation.z = Math.PI / 2 * -1;
+            } else if (idx == 24) {
+                dummyObjectA.rotation.z = Math.PI;
             }
+
+            dummyObjectA.updateMatrix();
+            wallMeshB.setMatrixAt(idx, dummyObjectA.matrix);
+            idx++;
         }
-
-        tourouMeshA.matrixAutoUpdate = false;
-        tourouMeshB.matrixAutoUpdate = false;
-        tourouMeshC.matrixAutoUpdate = false;
-
-        tourouMeshA.instanceMatrix.needsUpdate = true;
-        tourouMeshB.instanceMatrix.needsUpdate = true;
-        tourouMeshC.instanceMatrix.needsUpdate = true;
+        wallMeshB.matrixAutoUpdate = false;
+        wallMeshB.instanceMatrix.needsUpdate = false;
     }
 }
 
-function animate() {
+function drawStoneLantern() {
+    if (lanternMesh) {
+        let idx = 0;
+        for (let i = 0; i < lanternAmount; i++) {
+            dummyObjectA.position.set(lanternPosition[idx][0], lanternPosition[idx][1], lanternPosition[idx][2]);
+            dummyObjectA.rotation.x = Math.PI;
+            dummyObjectA.rotation.z = Math.PI;
+            dummyObjectA.updateMatrix();
+            lanternMesh.setMatrixAt(idx, dummyObjectA.matrix);
+            idx++;
+        }
+        lanternMesh.matrixAutoUpdate = false;
+        lanternMesh.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function drawPavedFloor() {
+    if (pavedMesh) {
+        let idx = 0;
+        for (let i = 0; i < pavedAmount; i++) {
+            dummyObjectC.position.set(floorPosition[idx][0], floorPosition[idx][1], floorPosition[idx][2]);
+            dummyObjectC.rotation.x = -Math.PI / 2;
+
+            if (idx == 39) {
+                dummyObjectC.rotation.z = -Math.PI / 2;
+            } else if (idx == 47) {
+                dummyObjectC.rotation.z = Math.PI / 2;
+            } else if (idx == 63) {
+                dummyObjectC.scale.y = 0.6745;
+            }
+
+            dummyObjectC.updateMatrix();
+            pavedMesh.setMatrixAt(idx, dummyObjectC.matrix);
+            idx++;
+        }
+        pavedMesh.matrixAutoUpdate = false;
+        pavedMesh.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function drawBambooStraw() {
+    if (bambooMesh) {
+        let idx = 0;
+        for (let i = 0; i < bambooPosition.length; i++) {
+            dummyObjectA.position.set(bambooPosition[idx][0], bambooPosition[idx][1], bambooPosition[idx][2]);
+            dummyObjectA.rotation.x = Math.PI / 2 * -1;
+            dummyObjectA.rotation.z = Math.PI;
+
+            if (idx >= 112 && idx <= 123) {
+                dummyObjectA.rotation.x = 0;
+                dummyObjectA.rotation.z = 0;
+
+                if (idx >= 112 && idx <= 115) {
+                    dummyObjectA.scale.z = 38.485;
+                } else if (idx >= 116 && idx <= 119) {
+                    dummyObjectA.scale.z = 15.45;
+                } else {
+                    dummyObjectA.scale.z = 15.79;
+                }
+            } else if (idx == 124) {
+                dummyObjectA.rotation.y = Math.PI / 2;
+                dummyObjectA.scale.z = 24.4;
+            } else if (idx == 126) {
+                dummyObjectA.scale.z = 11.1;
+            } else if (idx == 130) {
+                dummyObjectA.scale.z = 19.6;
+            }
+
+            dummyObjectA.updateMatrix();
+            bambooMesh.setMatrixAt(idx, dummyObjectA.matrix);
+            idx++;
+        }
+        bambooMesh.matrixAutoUpdate = false;
+        bambooMesh.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function drawToriiGate() {
+    if (gateMesh) {
+        dummyObjectD.position.set(0, 4.5, 39);
+        dummyObjectD.rotation.x = -Math.PI / 2 * 2;
+        dummyObjectD.rotation.y = Math.PI * 2;
+        dummyObjectD.rotation.z = Math.PI;
+        dummyObjectD.updateMatrix();
+        gateMesh.setMatrixAt(0, dummyObjectD.matrix);
+        gateMesh.matrixAutoUpdate = false;
+        gateMesh.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function drawGuardianNio() {
+    if (nioMeshA && nioMeshB) {
+        dummyObjectD.position.set(nioPosition[0], nioPosition[1], nioPosition[2]);
+        dummyObjectD.rotation.x = 0;
+        dummyObjectD.rotation.y = Math.PI * 2;
+        dummyObjectD.rotation.z = Math.PI;
+        dummyObjectD.updateMatrix();
+        nioMeshA.setMatrixAt(0, dummyObjectD.matrix);
+        nioMeshA.matrixAutoUpdate = false;
+        nioMeshA.instanceMatrix.needsUpdate = false;
+
+        dummyObjectD.position.set(nioPosition[0] * -1, nioPosition[1] - 0.1, nioPosition[2]);
+        dummyObjectD.rotation.y = Math.PI;
+        dummyObjectD.updateMatrix();
+        nioMeshB.setMatrixAt(0, dummyObjectD.matrix);
+        nioMeshB.matrixAutoUpdate = false;
+        nioMeshB.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function drawButton() {
+    if (buttonMesh) {
+        let idx = 0;
+        for (let i = 0; i < buttonAmount; i++) {
+            dummyObjectB.position.set(buttonPosition[idx][0], buttonPosition[idx][1], buttonPosition[idx][2]);
+            dummyObjectB.rotation.y = Math.PI / 2;
+            dummyObjectB.updateMatrix();
+            buttonMesh.setMatrixAt(idx, dummyObjectB.matrix);
+            buttonMesh.setColorAt(idx, buttonColor.setHex(0x00ff00));
+            idx++;
+        }
+        buttonMesh.matrixAutoUpdate = false;
+        buttonMesh.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function drawLamps() {
+    if (lampsMesh) {
+        let idx = 0;
+        for (let i = 0; i < lampsAmount; i++) {
+            scaleLamps.position.set(lanternPosition[idx][0], clippedHeightPointLight, lanternPosition[idx][2]);
+            scaleLamps.updateMatrix();
+            lampsMesh.setMatrixAt(idx, scaleLamps.matrix);
+            lampsMesh.setColorAt(idx, lampsColor.setHex(0xf04e03));
+            idx++;
+        }
+        lampsMesh.matrixAutoUpdate = false;
+        lampsMesh.instanceMatrix.needsUpdate = false;
+    }
+}
+
+function setObjectPosition() {
+    function setWallPosition() {
+        // Temple 1
+        wallPositionA.push([-16.45, clippedHeightWallA, 27.7]);
+        wallPositionA.push([-11.75, clippedHeightWallA, 27.7]);
+        wallPositionA.push([-7.05, clippedHeightWallA, 27.7]);
+        wallPositionA.push([-2.35, clippedHeightWallA, 27.7]);
+        wallPositionA.push([2.35, clippedHeightWallA, 27.7]);
+        wallPositionA.push([7.05, clippedHeightWallA, 27.7]);
+        wallPositionA.push([11.75, clippedHeightWallA, 27.7]);
+        wallPositionA.push([16.45, clippedHeightWallA, 27.7]);
+        wallPositionA.push([16.45, clippedHeightWallA, 23]);
+        wallPositionA.push([16.45, clippedHeightWallA, 18.3]);
+        wallPositionA.push([16.45, clippedHeightWallA, 13.6]);
+        wallPositionA.push([16.45, clippedHeightWallA, 8.9]);
+        wallPositionA.push([16.45, clippedHeightWallA, 4.2]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -0.5]);
+        wallPositionA.push([-11.75, clippedHeightWallA, -0.5]);
+        wallPositionA.push([-7.05, clippedHeightWallA, -0.5]);
+        wallPositionA.push([-2.35, clippedHeightWallA, -0.5]);
+        wallPositionA.push([2.35, clippedHeightWallA, -0.5]);
+        wallPositionA.push([7.05, clippedHeightWallA, -0.5]);
+        wallPositionA.push([11.75, clippedHeightWallA, -0.5]);
+        wallPositionA.push([16.45, clippedHeightWallA, -0.5]);
+        wallPositionA.push([-16.45, clippedHeightWallA, 23]);
+        wallPositionA.push([-16.45, clippedHeightWallA, 18.3]);
+        wallPositionA.push([-16.45, clippedHeightWallA, 13.6]);
+        wallPositionA.push([-16.45, clippedHeightWallA, 8.9]);
+        wallPositionA.push([-16.45, clippedHeightWallA, 4.2]);
+
+        // Temple 2
+        wallPositionA.push([-16.45, clippedHeightWallA, -9.9]);
+        wallPositionA.push([-11.75, clippedHeightWallA, -9.9]);
+        wallPositionA.push([-7.05, clippedHeightWallA, -9.9]);
+        wallPositionA.push([-2.35, clippedHeightWallA, -9.9]);
+        wallPositionA.push([2.35, clippedHeightWallA, -9.9]);
+        wallPositionA.push([7.05, clippedHeightWallA, -9.9]);
+        wallPositionA.push([11.75, clippedHeightWallA, -9.9]);
+        wallPositionA.push([16.45, clippedHeightWallA, -9.9]);
+        wallPositionA.push([16.45, clippedHeightWallA, -14.6]);
+        wallPositionA.push([16.45, clippedHeightWallA, -19.3]);
+        wallPositionA.push([16.45, clippedHeightWallA, -24]);
+        wallPositionA.push([16.45, clippedHeightWallA, -28.7]);
+        wallPositionA.push([16.45, clippedHeightWallA, -33.4]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -38.1]);
+        wallPositionA.push([-11.75, clippedHeightWallA, -38.1]);
+        wallPositionA.push([-7.05, clippedHeightWallA, -38.1]);
+        wallPositionA.push([-2.35, clippedHeightWallA, -38.1]);
+        wallPositionA.push([2.35, clippedHeightWallA, -38.1]);
+        wallPositionA.push([7.05, clippedHeightWallA, -38.1]);
+        wallPositionA.push([11.75, clippedHeightWallA, -38.1]);
+        wallPositionA.push([16.45, clippedHeightWallA, -38.1]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -14.6]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -19.3]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -24]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -28.7]);
+        wallPositionA.push([-16.45, clippedHeightWallA, -33.4]);
+
+        // Temple Left Side
+        wallPositionB.push([-14.05, clippedHeightWallB, 27.7]);
+        wallPositionB.push([-9.35, clippedHeightWallB, 27.7]);
+        wallPositionB.push([-4.65, clippedHeightWallB, 27.7]);
+        wallPositionB.push([-14.05, clippedHeightWallB, -0.5]);
+        wallPositionB.push([-9.35, clippedHeightWallB, -0.5]);
+        wallPositionB.push([-4.65, clippedHeightWallB, -0.5]);
+        wallPositionB.push([-14.05, clippedHeightWallB, -9.9]);
+        wallPositionB.push([-9.35, clippedHeightWallB, -9.9]);
+        wallPositionB.push([-4.65, clippedHeightWallB, -9.9]);
+        wallPositionB.push([-14.05, clippedHeightWallB, -38.1]);
+        wallPositionB.push([-9.35, clippedHeightWallB, -38.1]);
+        wallPositionB.push([-4.65, clippedHeightWallB, -38.1]);
+
+        // Temple Right Side
+        wallPositionB.push([14.05, clippedHeightWallB, 27.7]);
+        wallPositionB.push([9.35, clippedHeightWallB, 27.7]);
+        wallPositionB.push([4.65, clippedHeightWallB, 27.7]);
+        wallPositionB.push([14.05, clippedHeightWallB, -0.5]);
+        wallPositionB.push([9.35, clippedHeightWallB, -0.5]);
+        wallPositionB.push([4.65, clippedHeightWallB, -0.5]);
+        wallPositionB.push([14.05, clippedHeightWallB, -9.9]);
+        wallPositionB.push([9.35, clippedHeightWallB, -9.9]);
+        wallPositionB.push([4.65, clippedHeightWallB, -9.9]);
+        wallPositionB.push([14.05, clippedHeightWallB, -38.1]);
+        wallPositionB.push([9.35, clippedHeightWallB, -38.1]);
+        wallPositionB.push([4.65, clippedHeightWallB, -38.1]);
+
+        // Temple 1
+        wallPositionB.push([16.45, clippedHeightWallB, 25.3]);
+        wallPositionB.push([16.45, clippedHeightWallB, 20.6]);
+        wallPositionB.push([16.45, clippedHeightWallB, 15.9]);
+        wallPositionB.push([16.45, clippedHeightWallB, 11.2]);
+        wallPositionB.push([16.45, clippedHeightWallB, 6.5]);
+        wallPositionB.push([16.45, clippedHeightWallB, 1.8]);
+        wallPositionB.push([-16.45, clippedHeightWallB, 25.3]);
+        wallPositionB.push([-16.45, clippedHeightWallB, 20.6]);
+        wallPositionB.push([-16.45, clippedHeightWallB, 15.9]);
+        wallPositionB.push([-16.45, clippedHeightWallB, 11.2]);
+        wallPositionB.push([-16.45, clippedHeightWallB, 6.5]);
+        wallPositionB.push([-16.45, clippedHeightWallB, 1.8]);
+
+        // Temple 2
+        wallPositionB.push([16.45, clippedHeightWallB, -12.3]);
+        wallPositionB.push([16.45, clippedHeightWallB, -17]);
+        wallPositionB.push([16.45, clippedHeightWallB, -21.7]);
+        wallPositionB.push([16.45, clippedHeightWallB, -26.4]);
+        wallPositionB.push([16.45, clippedHeightWallB, -31.1]);
+        wallPositionB.push([16.45, clippedHeightWallB, -35.8]);
+        wallPositionB.push([-16.45, clippedHeightWallB, -12.3]);
+        wallPositionB.push([-16.45, clippedHeightWallB, -17]);
+        wallPositionB.push([-16.45, clippedHeightWallB, -21.7]);
+        wallPositionB.push([-16.45, clippedHeightWallB, -26.4]);
+        wallPositionB.push([-16.45, clippedHeightWallB, -31.1]);
+        wallPositionB.push([-16.45, clippedHeightWallB, -35.8]);
+
+        // Additional Fences
+        wallPositionB.push([-0.05, clippedHeightWallB, -0.5]);
+        wallPositionB.push([-0.05, clippedHeightWallB, -38.1]);
+    }
+
+    function setLanternPosition() {
+        lanternPosition.push([-32.4625, clippedHeightLantern, -43.5925]);
+        lanternPosition.push([32.4625, clippedHeightLantern, -43.5925]);
+        lanternPosition.push([-32.4625, clippedHeightLantern, 32.4625]);
+        lanternPosition.push([32.4625, clippedHeightLantern, 32.4625]);
+    }
+
+    function setFloorPosition() {
+        // Vertical Temple 1
+        floorPosition.push([0, clippedHeightFloor, 42.3875]);
+        floorPosition.push([0, clippedHeightFloor, 37.425]);
+        floorPosition.push([0, clippedHeightFloor, 32.4625]);
+        floorPosition.push([0, clippedHeightFloor, 27.5]);
+
+        // Vertical Right
+        floorPosition.push([23.1985, clippedHeightFloor, 31.6445]);
+        floorPosition.push([23.1985, clippedHeightFloor, 26.682]);
+        floorPosition.push([23.1985, clippedHeightFloor, 21.7195]);
+        floorPosition.push([23.1985, clippedHeightFloor, 16.757]);
+        floorPosition.push([23.1985, clippedHeightFloor, 11.7945]);
+        floorPosition.push([23.1985, clippedHeightFloor, 6.832]);
+        floorPosition.push([23.1985, clippedHeightFloor, 1.8695]);
+        floorPosition.push([23.1985, clippedHeightFloor, -3.093]);
+        floorPosition.push([23.1985, clippedHeightFloor, -8.0555]);
+        floorPosition.push([23.1985, clippedHeightFloor, -13.018]);
+        floorPosition.push([23.1985, clippedHeightFloor, -17.9805]);
+        floorPosition.push([23.1985, clippedHeightFloor, -22.943]);
+        floorPosition.push([23.1985, clippedHeightFloor, -27.9055]);
+        floorPosition.push([23.1985, clippedHeightFloor, -32.868]);
+        floorPosition.push([23.1985, clippedHeightFloor, -37.8305]);
+        floorPosition.push([23.1985, clippedHeightFloor, -42.793]);
+
+        // Vertical Temple 2
+        floorPosition.push([0, clippedHeightFloor, -6.0175]);
+        floorPosition.push([0, clippedHeightFloor, -10.98]);
+        floorPosition.push([0, clippedHeightFloor, -15.9425]);
+
+        // Vertical Left
+        floorPosition.push([-23.1975, clippedHeightFloor, 31.6445]);
+        floorPosition.push([-23.1975, clippedHeightFloor, 26.682]);
+        floorPosition.push([-23.1975, clippedHeightFloor, 21.7195]);
+        floorPosition.push([-23.1975, clippedHeightFloor, 16.757]);
+        floorPosition.push([-23.1975, clippedHeightFloor, 11.7945]);
+        floorPosition.push([-23.1975, clippedHeightFloor, 6.832]);
+        floorPosition.push([-23.1975, clippedHeightFloor, 1.8695]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -3.093]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -8.0555]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -13.018]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -17.9805]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -22.943]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -27.9055]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -32.868]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -37.8305]);
+        floorPosition.push([-23.1975, clippedHeightFloor, -42.793]);
+
+        // Horizontal Right
+        floorPosition.push([4.165, clippedHeightFloor, 32.445]);
+        floorPosition.push([9.1275, clippedHeightFloor, 32.445]);
+        floorPosition.push([14.09, clippedHeightFloor, 32.445]);
+        floorPosition.push([19.0525, clippedHeightFloor, 32.445]);
+        floorPosition.push([4.165, clippedHeightFloor, -5.2175]);
+        floorPosition.push([9.1275, clippedHeightFloor, -5.2175]);
+        floorPosition.push([14.09, clippedHeightFloor, -5.2175]);
+        floorPosition.push([19.0525, clippedHeightFloor, -5.2175]);
+
+        // Horizontal Left
+        floorPosition.push([-4.1475, clippedHeightFloor, 32.4625]);
+        floorPosition.push([-9.11, clippedHeightFloor, 32.4625]);
+        floorPosition.push([-14.0725, clippedHeightFloor, 32.4625]);
+        floorPosition.push([-19.035, clippedHeightFloor, 32.4625]);
+        floorPosition.push([-4.1475, clippedHeightFloor, -5.2]);
+        floorPosition.push([-9.11, clippedHeightFloor, -5.2]);
+        floorPosition.push([-14.0725, clippedHeightFloor, -5.2]);
+        floorPosition.push([-19.035, clippedHeightFloor, -5.2]);
+
+        // Horizontal Rear
+        floorPosition.push([4.165, clippedHeightFloor, -43.593]);
+        floorPosition.push([9.1275, clippedHeightFloor, -43.593]);
+        floorPosition.push([14.09, clippedHeightFloor, -43.593]);
+        floorPosition.push([19.0525, clippedHeightFloor, -43.593]);
+        floorPosition.push([-4.1475, clippedHeightFloor, -43.593]);
+        floorPosition.push([-9.11, clippedHeightFloor, -43.593]);
+        floorPosition.push([-14.0725, clippedHeightFloor, -43.593]);
+        floorPosition.push([-19.035, clippedHeightFloor, -43.593]);
+
+        // Scaled Floor
+        floorPosition.push([0.0089, clippedHeightFloor, -43.593]);
+    }
+
+    function setBambooPosition() {
+        // Bamboo Temple 1
+        bambooPosition.push([-20.635, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([-16.45, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([-11.75, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([-7.05, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([-2.35, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([2.35, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([7.05, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([11.75, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([16.45, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 24.4725]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 19.045]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 13.6175]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 8.19]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 2.7625]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([-16.45, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([-11.75, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([-7.05, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([-2.35, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([2.35, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([7.05, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([11.75, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([16.45, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, 24.4725]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, 19.045]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, 13.6175]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, 8.19]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, 2.7625]);
+
+        // Bamboo Temple 2
+        bambooPosition.push([-20.635, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([-16.45, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([-11.75, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([-7.05, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([-2.35, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([2.35, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([7.05, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([11.75, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([16.45, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -13.3083]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -18.8566]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -24.4049]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -29.9532]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -35.5015]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([-16.45, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([-11.75, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([-7.05, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([-2.35, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([2.35, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([7.05, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([11.75, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([16.45, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -13.3083]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -18.8566]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -24.4049]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -29.9532]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -35.5015]);
+
+        // Bamboo Outline
+        bambooPosition.push([-25.73, clippedHeightBambooA, 35]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, 35]);
+        bambooPosition.push([-16.45, clippedHeightBambooA, 35]);
+        bambooPosition.push([-11.75, clippedHeightBambooA, 35]);
+        bambooPosition.push([-7.05, clippedHeightBambooA, 35]);
+        bambooPosition.push([-2.35, clippedHeightBambooA, 35]);
+        bambooPosition.push([2.35, clippedHeightBambooA, 35]);
+        bambooPosition.push([7.05, clippedHeightBambooA, 35]);
+        bambooPosition.push([11.75, clippedHeightBambooA, 35]);
+        bambooPosition.push([16.45, clippedHeightBambooA, 35]);
+        bambooPosition.push([20.635, clippedHeightBambooA, 35]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 35]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 24.4725]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 19.045]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 13.6175]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 8.19]);
+        bambooPosition.push([25.73, clippedHeightBambooA, 2.7625]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -13.3083]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -18.8566]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -24.4049]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -29.9532]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -35.5015]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -41.05]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([-20.635, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([-16.45, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([-11.75, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([-7.05, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([-2.35, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([2.35, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([7.05, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([11.75, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([16.45, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([20.635, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([25.73, clippedHeightBambooA, -46.15]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, 29.9]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, 24.4725]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, 19.045]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, 13.6175]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, 8.19]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, 2.7625]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -2.665]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -7.76]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -13.3083]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -18.8566]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -24.4049]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -29.9532]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -35.5015]);
+        bambooPosition.push([-25.73, clippedHeightBambooA, -41.05]);
+
+        // Static Vertical
+        bambooPosition.push([25.73, clippedHeightBambooB, -44.243]);
+        bambooPosition.push([25.73, clippedHeightBambooC, -44.243]);
+        bambooPosition.push([-25.73, clippedHeightBambooB, -44.243]);
+        bambooPosition.push([-25.73, clippedHeightBambooC, -44.243]);
+        bambooPosition.push([20.635, clippedHeightBambooB, -1.905]);
+        bambooPosition.push([20.635, clippedHeightBambooC, -1.905]);
+        bambooPosition.push([-20.635, clippedHeightBambooB, -1.905]);
+        bambooPosition.push([-20.635, clippedHeightBambooC, -1.905]);
+        bambooPosition.push([20.635, clippedHeightBambooB, -40.27]);
+        bambooPosition.push([20.635, clippedHeightBambooC, -40.27]);
+        bambooPosition.push([-20.635, clippedHeightBambooB, -40.27]);
+        bambooPosition.push([-20.635, clippedHeightBambooC, -40.27]);
+
+        // Static Horizontal
+        bambooPosition.push([-24.52, clippedHeightBambooB, -46.15]);
+        bambooPosition.push([-24.52, clippedHeightBambooC, -46.15]);
+        bambooPosition.push([-25.195, clippedHeightBambooB, 35]);
+        bambooPosition.push([-25.195, clippedHeightBambooC, 35]);
+        bambooPosition.push([2.885, clippedHeightBambooB, 35]);
+        bambooPosition.push([2.885, clippedHeightBambooC, 35]);
+        bambooPosition.push([-19.695, clippedHeightBambooB, -2.665]);
+        bambooPosition.push([-19.695, clippedHeightBambooC, -2.665]);
+        bambooPosition.push([-19.695, clippedHeightBambooB, -41.05]);
+        bambooPosition.push([-19.695, clippedHeightBambooC, -41.05]);
+        bambooPosition.push([-19.695, clippedHeightBambooB, 29.9]);
+        bambooPosition.push([-19.695, clippedHeightBambooC, 29.9]);
+        bambooPosition.push([-19.695, clippedHeightBambooB, -7.76]);
+        bambooPosition.push([-19.695, clippedHeightBambooC, -7.76]);
+    }
+
+    function setButtonPosition() {
+        buttonPosition.push([-24.1975, 4.45, 40.3]);
+        buttonPosition.push([-22.1975, 4.45, 40.3]);
+        buttonPosition.push([-24.1975, 3.95, 40.3]);
+        buttonPosition.push([-22.1975, 3.95, 40.3]);
+        buttonPosition.push([-22.1975, 3, 40.3]);
+    }
+
+    setWallPosition();
+    setLanternPosition();
+    setFloorPosition();
+    setBambooPosition();
+    setButtonPosition();
+}
+
+setObjectPosition();
+
+const pointLight1 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight1.position.set(lanternPosition[0][0], clippedHeightPointLight, lanternPosition[0][2]);
+pointLight1.castShadow = true;
+pointLight1.shadow.autoUpdate = false;
+pointLight1.shadow.needsUpdate = true;
+pointLight1.shadow.bias = -0.01;
+// pointLight1.shadow.camera.far = 100;
+// pointLight1.shadow.camera.near = 50;
+// pointLight1.shadow.radius = 100;
+pointLight1.shadow.radius = lightRadius;
+pointLight1.visible = true;
+scene.add(pointLight1);
+
+const pointLight2 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight2.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
+pointLight2.castShadow = true;
+pointLight2.shadow.autoUpdate = false;
+pointLight2.shadow.needsUpdate = true;
+pointLight2.shadow.bias = -0.01;
+// pointLight2.shadow.camera.far = 100;
+// pointLight2.shadow.camera.near = 50;
+// pointLight2.shadow.radius = 100;
+pointLight2.shadow.radius = lightRadius;
+pointLight2.visible = true;
+scene.add(pointLight2);
+
+const pointLight3 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight3.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
+pointLight3.castShadow = true;
+pointLight3.shadow.autoUpdate = false;
+pointLight3.shadow.needsUpdate = true;
+pointLight3.shadow.bias = -0.01;
+// pointLight3.shadow.camera.far = 100;
+// pointLight3.shadow.camera.near = 50;
+// pointLight3.shadow.radius = 100;
+pointLight3.shadow.radius = lightRadius;
+pointLight3.visible = true;
+scene.add(pointLight3);
+
+const pointLight4 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight4.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
+pointLight4.castShadow = true;
+pointLight4.shadow.autoUpdate = false;
+pointLight4.shadow.needsUpdate = true;
+pointLight4.shadow.bias = -0.01;
+// pointLight4.shadow.camera.far = 100;
+// pointLight4.shadow.camera.near = 50;
+// pointLight4.shadow.radius = 100;
+pointLight4.shadow.radius = lightRadius;
+pointLight4.visible = true;
+scene.add(pointLight4);
+
+const spotlight = new THREE.SpotLight(0x994a0e, 8, 125, Math.PI / 4);
+spotlight.target.position.set(0, 0, 0);
+spotlight.position.set(0, 80, 0);
+spotlight.castShadow = true;
+spotlight.shadow.bias = -0.003;
+spotlight.shadow.camera.far = 50;
+spotlight.shadow.camera.fov = 30;
+spotlight.shadow.camera.near = 25;
+spotlight.shadow.mapSize.width = 2048;
+spotlight.shadow.mapSize.height = 2048;
+spotlight.add(new THREE.Mesh(
+    new THREE.SphereGeometry(4, 32, 32),
+    new THREE.MeshBasicMaterial({
+        color: 0xd15e06
+    })
+));
+scene.add(spotlight);
+
+/**
+ * Because InstancedBufferAttribute stands differently for each instance, draw calls for this Mesh
+   should be called only once (the first time renderer runs) so it doesn't replace any other instance
+   with new attribute (happened when updating matrix).
+ */
+drawButton();
+drawLamps();
+
+window.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    if (cameraControls == false) {
+        mousePointer.x = ((window.innerWidth / 2) / window.innerWidth) * 2 - 1;
+        mousePointer.y = -((window.innerHeight / 2) / window.innerHeight) * 2 + 1;
+    } else {
+        mousePointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mousePointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    raycaster.setFromCamera(mousePointer, camera);
+    const intersects = raycaster.intersectObject(buttonMesh);
+
+    if (intersects.length > 0) {
+        const buttonID = intersects[0].instanceId;
+
+        if (buttonID == 0) {
+            if (lampsVisible[0] == true) {
+                lampsVisible[0] = false;
+                pointLight1.intensity = 0;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            } else {
+                lampsVisible[0] = true;
+                pointLight1.intensity = lightIntensity;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            }
+        } else if (buttonID == 1) {
+            if (lampsVisible[1] == true) {
+                lampsVisible[1] = false;
+                pointLight2.intensity = 0;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            } else {
+                lampsVisible[1] = true;
+                pointLight2.intensity = lightIntensity;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            }
+        } else if (buttonID == 2) {
+            if (lampsVisible[2] == true) {
+                lampsVisible[2] = false;
+                pointLight3.intensity = 0;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            } else {
+                lampsVisible[2] = true;
+                pointLight3.intensity = lightIntensity;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            }
+        } else if (buttonID == 3) {
+            if (lampsVisible[3] == true) {
+                lampsVisible[3] = false;
+                pointLight4.intensity = 0;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            } else {
+                lampsVisible[3] = true;
+                pointLight4.intensity = lightIntensity;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            }
+        } else if (buttonID == 4) {
+            if (cameraControls == true) {
+                cameraControls = false;
+                orbitControls.enabled = false;
+                fpsControls.lock();
+                dot.style.display = "block";
+                detail.innerHTML = controlsCommand[0] + "\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3];
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+            } else {
+                cameraControls = true;
+                orbitControls.enabled = true;
+                fpsControls.unlock();
+                dot.removeAttribute("style");
+                detail.innerHTML = controlsCommand[4] + "\r\n" + controlsCommand[5] + "\r\n" + controlsCommand[6] + "\r\n" + controlsCommand[7];
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+            }
+        }
+
+        buttonMesh.instanceColor.needsUpdate = true;
+        lampsMesh.instanceMatrix.needsUpdate = true;
+    }
+});
+document.body.addEventListener("keydown", (e) => {
+    switch (e.keyCode) {
+        case 38: // UP
+        case 87: // W
+            moveForward = true;
+            break;
+        case 37: // LEFT
+        case 65: // A
+            moveLeft = true;
+            break;
+        case 40: // DOWN
+        case 83: // S
+            moveBackward = true;
+            break;
+        case 39: // RIGHT
+        case 68: // D
+            moveRight = true;
+            break;
+    }
+}, false);
+document.body.addEventListener("keyup", (e) => {
+    switch (e.keyCode) {
+        case 38: // UP
+        case 87: // W
+            moveForward = false;
+            break;
+        case 37: // LEFT
+        case 65: // A
+            moveLeft = false;
+            break;
+        case 40: // DOWN
+        case 83: // S
+            moveBackward = false;
+            break;
+        case 39: // RIGHT
+        case 68: // D
+            moveRight = false;
+            break;
+    }
+}, false);
+
+function animateScene() {
     if (startWebGL) {
         if (fpsControls.isLocked === true) {
             time = performance.now();
@@ -496,12 +1271,12 @@ function animate() {
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
 
-            direction.z = Number(moveForward) - Number(moveBackward);
             direction.x = Number(moveLeft) - Number(moveRight);
-            direction.normalize(); // this ensures consistent movements in all directions
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.normalize(); // This ensures consistent movements in all directions
 
-            if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-            if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+            if (moveLeft || moveRight) velocity.x -= direction.x * cameraSpeed * delta;
+            if (moveForward || moveBackward) velocity.z -= direction.z * cameraSpeed * delta;
 
             fpsControls.getObject().translateX(velocity.x * delta);
             fpsControls.getObject().translateZ(velocity.z * delta);
@@ -512,469 +1287,132 @@ function animate() {
 
     ctrTimeDay++;
 
-    if (ctrTimeDay%12 == 0){
-        if (ctrDay == 0){
-            color_red_fog -= red_color;
-            color_green_fog -= green_color;
-            color_blue_fog -= blue_color;
+    if (ctrTimeDay % 12 == 0) {
+        if (ctrDay == 0) {
+            if (fogRedColor - redColorSample >= 0) {
+                fogRedColor -= redColorSample;
+            }
+            if (fogGreenColor - greenColorSample >= 0) {
+                fogGreenColor -= greenColorSample;
+            }
+            if (fogBlueColor - blueColorSample >= 0) {
+                fogBlueColor -= blueColorSample;
+            }
+        } else {
+            if (fogRedColor + redColorSample <= 216) {
+                fogRedColor += redColorSample;
+            }
+            if (fogGreenColor + greenColorSample <= 183) {
+                fogGreenColor += greenColorSample;
+            }
+            if (fogBlueColor + blueColorSample <= 140) {
+                fogBlueColor += blueColorSample;
+            }
         }
-        else{
-            color_red_fog += red_color;
-            color_green_fog += green_color;
-            color_blue_fog += blue_color;
-        }
-    
-        if (color_red_fog == 0){
+
+        if (fogRedColor == 0 && fogGreenColor == 0 && fogBlueColor == 0) {
             ctrDay = 1;
-        }
-        else if (color_red_fog == 216){
+
+            if (lampsVisible[0] == true) {
+                pointLight1.intensity = 0;
+                scaleLamps.position.set(lanternPosition[0][0], lanternPosition[0][1], lanternPosition[0][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(0, scaleLamps.matrix);
+            }
+            if (lampsVisible[1] == true) {
+                pointLight2.intensity = 0;
+                scaleLamps.position.set(lanternPosition[1][0], lanternPosition[1][1], lanternPosition[1][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(1, scaleLamps.matrix);
+            }
+            if (lampsVisible[2] == true) {
+                pointLight3.intensity = 0;
+                scaleLamps.position.set(lanternPosition[2][0], lanternPosition[2][1], lanternPosition[2][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(2, scaleLamps.matrix);
+            }
+            if (lampsVisible[3] == true) {
+                pointLight4.intensity = 0;
+                scaleLamps.position.set(lanternPosition[3][0], lanternPosition[3][1], lanternPosition[3][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(3, scaleLamps.matrix);
+            }
+
+            lampsMesh.instanceMatrix.needsUpdate = true;
+        } else if (fogRedColor == 216 && fogGreenColor == 183 && fogBlueColor == 140) {
             ctrDay = 0;
+
+            if (lampsVisible[0] == true) {
+                pointLight1.intensity = 1;
+                scaleLamps.position.set(lanternPosition[0][0], clippedHeightPointLight, lanternPosition[0][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(0, scaleLamps.matrix);
+            }
+            if (lampsVisible[1] == true) {
+                pointLight2.intensity = 1;
+                scaleLamps.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(1, scaleLamps.matrix);
+            }
+            if (lampsVisible[2] == true) {
+                pointLight3.intensity = 1;
+                scaleLamps.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(2, scaleLamps.matrix);
+            }
+            if (lampsVisible[3] == true) {
+                pointLight4.intensity = 1;
+                scaleLamps.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(3, scaleLamps.matrix);
+            }
+
+            lampsMesh.instanceMatrix.needsUpdate = true;
         }
-    
-        color_fog = new THREE.Color('rgb('+ color_red_fog + ', ' + color_green_fog + ', '+ color_blue_fog +')');
-        // console.log(color_fog)
-        fogColor = new THREE.Color(color_fog);
+
+        fogColor = new THREE.Color("rgb(" + fogRedColor + ", " + fogGreenColor + ", " + fogBlueColor + ")");
         scene.background = fogColor;
-        scene.fog = new THREE.FogExp2(fogColor, 0.011);
+        scene.fog = new THREE.FogExp2(fogColor, fogDensity);
         ctrTimeDay = 0;
     }
 
-
-    // if (ctrDay == 300){
-    //     color_fog = 0xd8b88d;
-    //     fogColor = new THREE.Color(color_fog);
+    // if (ctrDay == 300) {
+    //     fogColor = 0xd8b88d;
     //     scene.background = fogColor;
-    //     scene.fog = new THREE.FogExp2(fogColor, 0.011);
-    // }
-    // else if (ctrDay == 600){
+    //     scene.fog = new THREE.FogExp2(fogColor, fogDensity);
+    // } else if (ctrDay == 600) {
     //     ctrDay = 0;
-    //     color_fog = 0x000000;
-    //     fogColor = new THREE.Color(color_fog);
+    //     fogColor = 0x000000;
     //     scene.background = fogColor;
     //     scene.fog = null;
     // }
 
     date = Date.now() * 0.0005;
+    delta = clock.getDelta();
 
-    borderRadius = 60;
+    if (mixerA && mixerB) {
+        mixerA.update(delta);
+        mixerB.update(delta);
+    }
 
-    //spotlight position
+    // Change SpotLight Position
     spotlight.position.x = Math.cos(date) * borderRadius;
     spotlight.position.z = Math.sin(date) * borderRadius;
     spotlight.rotation.x += 0.00001;
-    // spotlight.target.position.set(0, 0, 0);
+    spotlight.target.position.set(0, 0, 0);
     // orbitControls.update();
 
+    // Montage
     // scene.rotation.y += 0.005;
 
-    requestAnimationFrame(animate);
-    drawStoneLantern();
+    requestAnimationFrame(animateScene);
     drawStoneWall();
+    drawStoneLantern();
+    drawPavedFloor();
+    drawBambooStraw();
+    drawToriiGate();
+    drawGuardianNio();
 
-    renderer.render(scene, cam);
+    renderer.render(scene, camera);
     rendererStats.update(renderer);
 }
-
-// ------------------------------------------------------------------
-// // load gltf model
-objectLoader.load("./dump/models/shitennoji/scene.gltf", (gltf) => {
-    gltf.scene.traverse((child) => {
-        if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-        }
-    });
-    gltf.scene.position.set(0, -0.4, -24);
-    gltf.scene.scale.set(0.0085, 0.0085, 0.0085);
-    console.log(dumpObject(gltf.scene).join("\n"));
-    scene.add(gltf.scene);
-});
-
-objectLoader.load(
-    "./dump/models/japanese_lowpoly_temple/scene.gltf",
-    (gltf) => {
-        gltf.scene.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-        });
-        gltf.scene.position.set(0, 0, 12);
-        gltf.scene.rotation.y = (-Math.PI / 2) * -1;
-        gltf.scene.scale.set(0.5, 0.5, 0.5);
-        console.log(dumpObject(gltf.scene).join("\n"));
-        scene.add(gltf.scene);
-    }
-);
-
-const wallAmountA = 26;
-const wallAmountB = 24;
-
-let wallMeshA, wallGeometryA, wallMaterialA;
-let wallMeshB, wallGeometryB, wallMaterialB;
-
-objectLoader.load("./dump/models/modular_concrete_fence/scene.gltf",
-    (gltf) => {
-        const objectScene = gltf.scene;
-
-        console.log(dumpObject(objectScene).join("\n"));
-
-        const _wallMeshA = objectScene.getObjectByName("Cube");
-        const _wallMeshB = objectScene.getObjectByName("Cube001");
-
-        console.log(_wallMeshA);
-        console.log(_wallMeshB);
-
-        wallGeometryA = _wallMeshA.children[0].geometry.clone();
-        wallGeometryB = _wallMeshB.children[0].geometry.clone();
-
-        const defaultTransformA = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(0.03, 0.03, 0.03));
-        const defaultTransformB = new THREE.Matrix4().multiply(new THREE.Matrix4().makeScale(0.04, 0.04, 0.04));
-
-        wallGeometryA.applyMatrix4(defaultTransformA);
-        wallGeometryB.applyMatrix4(defaultTransformB);
-
-        wallMaterialA = _wallMeshA.children[0].material;
-        wallMaterialB = _wallMeshB.children[0].material;
-
-        wallMeshA = new THREE.InstancedMesh(wallGeometryA, wallMaterialA, wallAmountA);
-        wallMeshB = new THREE.InstancedMesh(wallGeometryB, wallMaterialB, wallAmountB);
-
-        wallMeshA.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        wallMeshB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-
-        scene.add(wallMeshA);
-        scene.add(wallMeshB);
-
-        wallMeshA.castShadow = true;
-        wallMeshA.receiveShadow = true;
-        wallMeshB.castShadow = true;
-        wallMeshB.receiveShadow = true;
-
-        console.log(wallMeshA);
-        console.log(wallMeshB);
-
-        animate();
-    },
-
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100) + "% loaded!");
-    },
-
-    (error) => {
-        console.log("Error has occured when loading model!");
-    }
-);
-
-var boolTest = true;
-
-function drawStoneWall() {
-    if (
-        wallMeshA &&
-        wallMeshB
-    ) {
-        let testArray1 = [];
-        // Gap: 4.7
-        testArray1.push(-16.95);
-        testArray1.push(-12.25);
-        testArray1.push(- 7.55);
-        testArray1.push(- 2.85);
-        testArray1.push(  2.85);
-        testArray1.push(  7.55);
-        testArray1.push( 12.25);
-        testArray1.push( 16.95);
-        testArray1.push( 16.95);
-        testArray1.push( 16.95);
-        testArray1.push( 16.95);
-        testArray1.push( 16.95);
-        testArray1.push( 16.95);
-        testArray1.push( 16.95);
-        testArray1.push(-16.95);
-        testArray1.push(-12.25);
-        testArray1.push(- 7.55);
-        testArray1.push(- 2.85);
-        testArray1.push(  2.85);
-        testArray1.push(  7.55);
-        testArray1.push( 12.25);
-        testArray1.push(-16.95);
-        testArray1.push(-16.95);
-        testArray1.push(-16.95);
-        testArray1.push(-16.95);
-        testArray1.push(-16.95);
-
-        let testArray2 = [];
-        // Gap: 4.7
-        testArray2.push(-14.55);
-        testArray2.push(- 9.85);
-        testArray2.push(- 5.15);
-        testArray2.push(  5.15);
-        testArray2.push(  9.85);
-        testArray2.push( 14.55);
-        testArray2.push( 16.95);
-        testArray2.push( 16.95);
-        testArray2.push( 16.95);
-        testArray2.push( 16.95);
-        testArray2.push( 16.95);
-        testArray2.push( 16.95);
-        testArray2.push(-14.55);
-        testArray2.push(- 9.85);
-        testArray2.push(- 5.15);
-        testArray2.push(  5.15);
-        testArray2.push(  9.85);
-        testArray2.push( 14.55);
-        testArray2.push(-16.95);
-        testArray2.push(-16.95);
-        testArray2.push(-16.95);
-        testArray2.push(-16.95);
-        testArray2.push(-16.95);
-        testArray2.push(-16.95);
-
-        let testArray3 = [];
-        // Gap: 4.7
-        testArray3.push( 24.4);
-        testArray3.push( 19.7);
-        testArray3.push( 15.0);
-        testArray3.push( 10.3);
-        testArray3.push(  5.6);
-        testArray3.push(  0.9);
-        testArray3.push( 24.4);
-        testArray3.push( 19.7);
-        testArray3.push( 15.0);
-        testArray3.push( 10.3);
-        testArray3.push(  5.6);
-        testArray3.push(  0.9);
-
-        let testArray4 = [];
-        // Gap: 4.7
-        testArray4.push( 22.0);
-        testArray4.push( 17.3);
-        testArray4.push( 12.6);
-        testArray4.push(  7.9);
-        testArray4.push(  3.2);
-        testArray4.push(- 1.5);
-        testArray4.push( 22.0);
-        testArray4.push( 17.3);
-        testArray4.push( 12.6);
-        testArray4.push(  7.9);
-        testArray4.push(  3.2);
-
-        // Salah hitungan index i, cek lagi
-        let i = 0;
-        for (let x = 0; x < wallAmountA; x++) {
-            for (let y = 0; y < wallAmountA; y++) {
-                for (let z = 0; z < wallAmountA; z++) {
-                    if(i >= 8 && i <= 14) {
-                        dummyObject2.position.set(testArray1[i], 1.05, testArray4[i - 8]);
-                    } else if(i > 21) {
-                        dummyObject2.position.set(testArray1[i], 1.05, testArray4[i - 15]);
-                    } else if(i >= 15) {
-                        dummyObject2.position.set(testArray1[i], 1.05, -1.5);
-                    } else if(i < 8) {
-                        dummyObject2.position.set(testArray1[i], 1.05, 26.7);
-                    }
-                    dummyObject2.rotation.x = Math.PI / 2 * -1;
-                    dummyObject2.rotation.z = Math.PI / 2 * -1;
-                    dummyObject2.updateMatrix();
-                    wallMeshA.setMatrixAt(i, dummyObject2.matrix);
-
-                    i++;
-                }
-            }
-        }
-
-        // Salah hitungan index i, cek lagi
-        i = 0;
-        for (let x = 0; x < wallAmountB; x++) {
-            for (let y = 0; y < wallAmountB; y++) {
-                for (let z = 0; z < wallAmountB; z++) {
-                    if (i >= 6 && i <= 11) {
-                        dummyObject2.position.set(testArray2[i], 0.2, testArray3[i - 6]);
-                    } else if(i >= 18) {
-                        dummyObject2.position.set(testArray2[i], 0.2, testArray3[i - 12]);
-                    } else if(i >= 12) {
-                        dummyObject2.position.set(testArray2[i], 0.2, -1.5);
-                    } else {
-                        dummyObject2.position.set(testArray2[i], 0.2, 26.7);
-                    }
-                    dummyObject2.rotation.x = Math.PI / 2 * -1;
-
-                    if (i >= 6 && i < 12 || i >= 18) {
-                        dummyObject2.rotation.z = Math.PI * 2 * -1;
-                    } else if(i < 6 || i >= 12) {
-                        dummyObject2.rotation.z = Math.PI / 2 * -1;
-                    }
-
-                    dummyObject2.updateMatrix();
-                    wallMeshB.setMatrixAt(i, dummyObject2.matrix);
-
-                    i++;
-                }
-            }
-        }
-
-        wallMeshA.matrixAutoUpdate = false;
-        wallMeshB.matrixAutoUpdate = false;
-
-        wallMeshA.instanceMatrix.needsUpdate = true;
-        wallMeshB.instanceMatrix.needsUpdate = true;
-
-        if (boolTest) {
-            boolTest = false;
-            console.log("=================================================");
-            console.log(wallMeshB);
-        }
-    }
-}
-
-function dumpObject(obj, lines = [], isLast = true, prefix = "") {
-    const localPrefix = isLast ? "└─" : "├─";
-    lines.push(
-        `${prefix}${prefix ? localPrefix : ""}${obj.name || "*no-name*"} [${
-      obj.type
-    }]`
-    );
-    const newPrefix = prefix + (isLast ? "  " : "│ ");
-    const lastNdx = obj.children.length - 1;
-    obj.children.forEach((child, ndx) => {
-        const isLast = ndx === lastNdx;
-        dumpObject(child, lines, isLast, newPrefix);
-    });
-    return lines;
-}
-
-const geometry = new THREE.BoxGeometry( 0.5, 3, 3 );
-let loadermaterial = new THREE.TextureLoader();
-const material = new THREE.MeshBasicMaterial( { map: loadermaterial.load("../textures/black-g444986ca3_1920.jpg") } );
-material.castShadow = true;
-material.receiveShadow = true;
-const cube = new THREE.Mesh( geometry, material );
-cube.position.set(-23, 3, 30);
-cube.rotation.y = Math.PI / 2;
-cube.castShadow = true;
-cube.receiveShadow = true;
-console.log(cube)
-scene.add( cube );
-
-const btn1 = new THREE.BoxGeometry( 0.1, 0.2, 0.2 );
-const btnMaterial1 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
-const btn1cube = new THREE.Mesh( btn1, btnMaterial1 );
-btn1cube.position.set(-24, 3.5, 30.3);
-btn1cube.rotation.y = Math.PI / 2;
-btn1cube.name = "btn1";
-scene.add( btn1cube );
-
-const btn2 = new THREE.BoxGeometry( 0.1, 0.2, 0.2 );
-const btnMaterial2 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
-const btn2cube = new THREE.Mesh( btn2, btnMaterial2 );
-btn2cube.position.set(-22, 3.5, 30.3);
-btn2cube.rotation.y = Math.PI / 2;
-btn2cube.name = "btn2";
-scene.add( btn2cube );
-
-const btn3 = new THREE.BoxGeometry( 0.1, 0.2, 0.2 );
-const btnMaterial3 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
-const btn3cube = new THREE.Mesh( btn3, btnMaterial3 );
-btn3cube.position.set(-24, 3, 30.3);
-btn3cube.rotation.y = Math.PI / 2;
-btn3cube.name = "btn3";
-scene.add( btn3cube );
-
-const btn4 = new THREE.BoxGeometry( 0.1, 0.2, 0.2 );
-const btnMaterial4 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
-const btn4cube = new THREE.Mesh( btn4, btnMaterial4 );
-btn4cube.position.set(-22, 3, 30.3);
-btn4cube.rotation.y = Math.PI / 2;
-btn4cube.name = "btn4";
-scene.add( btn4cube );
-
-const btn5 = new THREE.BoxGeometry( 0.1, 0.2, 0.2 );
-const btnMaterial5 = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-const btn5cube = new THREE.Mesh( btn5, btnMaterial5 );
-btn5cube.position.set(-22, 2, 30.3);
-btn5cube.rotation.y = Math.PI / 2;
-btn5cube.name = "btn5";
-scene.add( btn5cube );
-
-// var textGeo =
-const onMouseClick = (event) => {
-    if (camControls == false){
-        pointer.x = ((window.innerWidth/2) / window.innerWidth) * 2 - 1;
-        pointer.y = -((window.innerHeight/2) / window.innerHeight) * 2 + 1;
-    }
-    else{
-        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    }
-    raycaster.setFromCamera(pointer, cam);
-    const intersects = raycaster.intersectObjects(scene.children);
-    if (intersects.length > 0) {
-        if (intersects[0].object.name === "btn1") {
-            if (lamps[0] == true){
-                lamps[0] = false;
-                pointLight1.visible = false;
-                intersects[0].object.material.color.set(0xff0000);
-            }
-            else{
-                lamps[0] = true;
-                pointLight1.visible = true;
-                intersects[0].object.material.color.set(0xffffff);
-            }
-        } else if (intersects[0].object.name === "btn2") {
-            if (lamps[3] == true){
-                lamps[3] = false;
-                pointLight4.visible = false;
-                intersects[0].object.material.color.set(0xff0000);
-            }
-            else{
-                lamps[3] = true;
-                pointLight4.visible = true;
-                intersects[0].object.material.color.set(0xffffff);
-            }
-        }else if (intersects[0].object.name === "btn3") {
-            if (lamps[1] == true){
-                lamps[1] = false;
-                pointLight2.visible = false;
-                intersects[0].object.material.color.set(0xff0000);
-            }
-            else{
-                lamps[1] = true;
-                pointLight2.visible = true;
-                intersects[0].object.material.color.set(0xffffff);
-            }
-        }else if (intersects[0].object.name === "btn4") {
-            if (lamps[2] == true){
-                lamps[2] = false;
-                pointLight3.visible = false;
-                intersects[0].object.material.color.set(0xff0000);
-            }
-            else{
-                lamps[2] = true;
-                pointLight3.visible = true;
-                intersects[0].object.material.color.set(0xffffff);
-            }
-        }else if (intersects[0].object.name === "btn5") {
-            if (camControls == false){
-                camControls = true;
-                intersects[0].object.material.color.set(0xffffff);
-                fpsControls.unlock();
-                document.getElementById("dot").style.display = "none";
-                orbitControls.enabled = true;
-            }
-            else{
-                camControls = false;
-                intersects[0].object.material.color.set(0x00ff00);
-                orbitControls.enabled = false;
-                fpsControls.lock();
-                document.getElementById("dot").style.display = "true";
-            }
-        }
-    }
-}
-
-window.addEventListener('click', onMouseClick);
-
-var rendererStats	= new THREEx.RendererStats();
-rendererStats.domElement.style.position	= 'absolute'
-rendererStats.domElement.style.left	= '0px'
-rendererStats.domElement.style.bottom	= '0px'
-document.body.appendChild( rendererStats.domElement )
