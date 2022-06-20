@@ -81,7 +81,7 @@ const direction = new THREE.Vector3();
 const mousePointer = new THREE.Vector2(1, 1);
 const raycaster = new THREE.Raycaster();
 
-let delta, time;
+let delta, mixerA, mixerB, time;
 let ctrDay = 0;
 let ctrTimeDay = 0;
 let prevTime = performance.now();
@@ -364,6 +364,44 @@ objectLoader.load("./../models/1972.158.1_guardian_figure_nio/scene_low.gltf", (
 
     // console.log(dumpObject(gltf.scene).join("\n"));
     // console.log(nioMeshB);
+});
+objectLoader.load("./../models/sakura_tree/scene_low.gltf", (gltf) => {
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+    gltf.scene.position.set(-32.4625, 0, -5.2);
+    scene.add(gltf.scene);
+
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(gltf.scene);
+
+    mixerA = new THREE.AnimationMixer(gltf.scene);
+    gltf.animations[0].optimize();
+    gltf.animations.forEach((clip) => {
+        mixerA.clipAction(clip).play();
+    });
+});
+objectLoader.load("./../models/sakura_tree/scene_low.gltf", (gltf) => {
+    gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+    gltf.scene.position.set(32.4625, 0, -5.2);
+    scene.add(gltf.scene);
+
+    // console.log(dumpObject(gltf.scene).join("\n"));
+    // console.log(gltf.scene);
+
+    mixerB = new THREE.AnimationMixer(gltf.scene);
+    gltf.animations[0].optimize();
+    gltf.animations.forEach((clip) => {
+        mixerB.clipAction(clip).play();
+    });
 });
 
 function drawStoneWall() {
@@ -902,10 +940,10 @@ function setObjectPosition() {
     }
 
     function setButtonPosition() {
-        buttonPosition.push([-24.1975, 4.5, 40.3]);
-        buttonPosition.push([-22.1975, 4.5, 40.3]);
-        buttonPosition.push([-24.1975, 4, 40.3]);
-        buttonPosition.push([-22.1975, 4, 40.3]);
+        buttonPosition.push([-24.1975, 4.45, 40.3]);
+        buttonPosition.push([-22.1975, 4.45, 40.3]);
+        buttonPosition.push([-24.1975, 3.95, 40.3]);
+        buttonPosition.push([-22.1975, 3.95, 40.3]);
         buttonPosition.push([-22.1975, 3, 40.3]);
     }
 
@@ -1272,6 +1310,12 @@ function animateScene() {
     }
 
     date = Date.now() * 0.0005;
+    delta = clock.getDelta();
+
+    if (mixerA && mixerB) {
+        mixerA.update(delta);
+        mixerB.update(delta);
+    }
 
     // Change SpotLight Position
     spotlight.position.x = Math.cos(date) * borderRadius;
@@ -1280,6 +1324,7 @@ function animateScene() {
     spotlight.target.position.set(0, 0, 0);
     // orbitControls.update();
 
+    // Montage
     // scene.rotation.y += 0.005;
 
     requestAnimationFrame(animateScene);
@@ -1290,75 +1335,85 @@ function animateScene() {
     drawToriiGate();
     drawGuardianNio();
 
-    var delta = clock.getDelta();
-    if (mixerA) {
-        mixerA.update(delta);
-        // mixerB.update(delta);
-    }
-
     renderer.render(scene, camera);
     rendererStats.update(renderer);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-// Sakura Tree
-let animMixers = [];
-let mixerA, mixerB;
-let treeA, treeB;
-
-objectLoader.load("./../models/sakura_tree/scene_low.gltf", (gltf) => {
-    const treeA = gltf.scene;
-    treeA.traverse((child) => {
-        if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-        }
+const fontLoader = new THREE.FontLoader(manager);
+fontLoader.load("./../Oswald_Bold.json", (font) => {
+    const fontGeometry = new THREE.TextGeometry("Top Left", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
     });
-    treeA.position.set(-32.4625, 0, -5.2);
-    scene.add(treeA);
-
-    // console.log(dumpObject(treeA).join("\n"));
-    // console.log(gltf.scene);
-
-    // const treeB = SkeletonUtils.clone(treeA);
-    // treeB.position.x = 32.4625;
-    // scene.add(treeB);
-
-    // console.log(treeA);
-    // console.log(treeB);
-    // console.log(scene.children)
-
-    mixerA = new THREE.AnimationMixer(treeA);
-    gltf.animations[0].optimize();
-    gltf.animations.forEach((clip) => {
-        mixerA.clipAction(clip).play();
+    const fontGeometry2 = new THREE.TextGeometry("Top Right", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
     });
-    // animMixers.push(mixerA);
+    const fontGeometry3 = new THREE.TextGeometry("Bottom Left", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry4 = new THREE.TextGeometry("Bottom Right", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry5 = new THREE.TextGeometry("Change Camera Control", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry6 = new THREE.TextGeometry("Control Panel", {
+        font: font,
+        size: 0.2,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const textMesh1 = new THREE.Mesh(fontGeometry, new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    }));
+    textMesh1.position.set(-24, 4.4, 40.2);
+    
+    const textMesh2 = textMesh1.clone();
+    textMesh2.position.set(-22.925, 4.4, 40.2);
+    textMesh2.geometry = fontGeometry2;
 
-    // mixerB = new THREE.AnimationMixer(treeB);
-    // gltf.animations[0].optimize();
-    // gltf.animations.forEach((clip) => {
-    //     mixerB.clipAction(clip).play();
-    // });
-    // // animMixers.push(mixerB);
+    const textMesh3 = textMesh1.clone();
+    textMesh3.position.set(-24, 3.9, 40.2);
+    textMesh3.geometry = fontGeometry3;
 
-    // let clipAnim = gltf.animations[0];
-    // clipAnim.optimize();
+    const textMesh4 = textMesh1.clone();
+    textMesh4.position.set(-23.15, 3.9, 40.2);
+    textMesh4.geometry = fontGeometry4;
 
-    // let actA = this.mixer1.clipAction(anim);
-    // let actB = this.mixer2.clipAction(anim);
+    const textMesh5 = textMesh1.clone();
+    textMesh5.position.set(-23.725, 2.95, 40.2);
+    textMesh5.geometry = fontGeometry5;
+
+    const textMesh6 = textMesh1.clone();
+    textMesh6.position.set(-23.98, 5, 40.2);
+    textMesh6.geometry = fontGeometry6;
+
+    scene.add(textMesh1);
+    scene.add(textMesh2);
+    scene.add(textMesh3);
+    scene.add(textMesh4);
+    scene.add(textMesh5);
+    scene.add(textMesh6);
 });
 
-// treeB = treeA.clone();
-// treeB.position.x = 32.4625;
-// scene.add(treeB);
+
+
+// buttonPosition.push([-24.1975, 4.5, 40.3]);
+// buttonPosition.push([-22.1975, 4.5, 40.3]);
+// buttonPosition.push([-24.1975, 4, 40.3]);
+// buttonPosition.push([-22.1975, 4, 40.3]);
+// buttonPosition.push([-22.1975, 3, 40.3]);
