@@ -45,10 +45,14 @@ overlay.addEventListener("click", () => {
 document.body.appendChild(overlay);
 
 const controlsCommand = [];
-controlsCommand.push("Press W for moving forward");
-controlsCommand.push("Press S for moving backward");
-controlsCommand.push("Press A for moving left");
-controlsCommand.push("Press D for moving right");
+controlsCommand.push("Press W to moving forward");
+controlsCommand.push("Press S to moving backward");
+controlsCommand.push("Press A to moving left");
+controlsCommand.push("Press D to moving right");
+controlsCommand.push("Hold Left Mouse Button to rotate camera");
+controlsCommand.push("Hold Right Mouse Button to drag camera");
+controlsCommand.push("Scroll Mouse Wheel Up to zoom camera in");
+controlsCommand.push("Scroll Mouse Wheel Down to zoom camera out");
 
 const detail = document.createElement("div");
 detail.id = "controlsDetail";
@@ -230,6 +234,78 @@ panelMesh.rotation.y = Math.PI / 2;
 panelMesh.castShadow = true;
 panelMesh.receiveShadow = true;
 scene.add(panelMesh);
+
+const fontLoader = new THREE.FontLoader(manager);
+fontLoader.load("./../Oswald_Bold.json", (font) => {
+    const fontGeometry1 = new THREE.TextGeometry("Top Left", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry2 = new THREE.TextGeometry("Top Right", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry3 = new THREE.TextGeometry("Bottom Left", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry4 = new THREE.TextGeometry("Bottom Right", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry5 = new THREE.TextGeometry("Change Camera Control", {
+        font: font,
+        size: 0.1,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+    const fontGeometry6 = new THREE.TextGeometry("Control Panel", {
+        font: font,
+        size: 0.2,
+        bevelSize: 0.2,
+        height: 0.1,
+    });
+
+    const textMesh1 = new THREE.Mesh(fontGeometry1, new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    }));
+    textMesh1.position.set(-24, 4.4, 40.2);
+
+    const textMesh2 = textMesh1.clone();
+    textMesh2.position.set(-22.925, 4.4, 40.2);
+    textMesh2.geometry = fontGeometry2;
+
+    const textMesh3 = textMesh1.clone();
+    textMesh3.position.set(-24, 3.9, 40.2);
+    textMesh3.geometry = fontGeometry3;
+
+    const textMesh4 = textMesh1.clone();
+    textMesh4.position.set(-23.15, 3.9, 40.2);
+    textMesh4.geometry = fontGeometry4;
+
+    const textMesh5 = textMesh1.clone();
+    textMesh5.position.set(-23.725, 2.95, 40.2);
+    textMesh5.geometry = fontGeometry5;
+
+    const textMesh6 = textMesh1.clone();
+    textMesh6.position.set(-23.98, 5, 40.2);
+    textMesh6.geometry = fontGeometry6;
+
+    scene.add(textMesh1);
+    scene.add(textMesh2);
+    scene.add(textMesh3);
+    scene.add(textMesh4);
+    scene.add(textMesh5);
+    scene.add(textMesh6);
+});
 
 const buttonGeometry = new THREE.BoxBufferGeometry(0.1, 0.2, 0.2);
 const buttonMaterial = new THREE.MeshBasicMaterial({
@@ -1129,12 +1205,14 @@ window.addEventListener("click", (e) => {
                 orbitControls.enabled = false;
                 fpsControls.lock();
                 dot.style.display = "block";
+                detail.innerHTML = controlsCommand[0] + "\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3];
                 buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
             } else {
                 cameraControls = true;
                 orbitControls.enabled = true;
                 fpsControls.unlock();
                 dot.removeAttribute("style");
+                detail.innerHTML = controlsCommand[4] + "\r\n" + controlsCommand[5] + "\r\n" + controlsCommand[6] + "\r\n" + controlsCommand[7];
                 buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
             }
         }
@@ -1338,82 +1416,3 @@ function animateScene() {
     renderer.render(scene, camera);
     rendererStats.update(renderer);
 }
-
-const fontLoader = new THREE.FontLoader(manager);
-fontLoader.load("./../Oswald_Bold.json", (font) => {
-    const fontGeometry = new THREE.TextGeometry("Top Left", {
-        font: font,
-        size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
-    });
-    const fontGeometry2 = new THREE.TextGeometry("Top Right", {
-        font: font,
-        size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
-    });
-    const fontGeometry3 = new THREE.TextGeometry("Bottom Left", {
-        font: font,
-        size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
-    });
-    const fontGeometry4 = new THREE.TextGeometry("Bottom Right", {
-        font: font,
-        size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
-    });
-    const fontGeometry5 = new THREE.TextGeometry("Change Camera Control", {
-        font: font,
-        size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
-    });
-    const fontGeometry6 = new THREE.TextGeometry("Control Panel", {
-        font: font,
-        size: 0.2,
-        bevelSize: 0.2,
-        height: 0.1,
-    });
-    const textMesh1 = new THREE.Mesh(fontGeometry, new THREE.MeshBasicMaterial({
-        color: 0xffffff
-    }));
-    textMesh1.position.set(-24, 4.4, 40.2);
-    
-    const textMesh2 = textMesh1.clone();
-    textMesh2.position.set(-22.925, 4.4, 40.2);
-    textMesh2.geometry = fontGeometry2;
-
-    const textMesh3 = textMesh1.clone();
-    textMesh3.position.set(-24, 3.9, 40.2);
-    textMesh3.geometry = fontGeometry3;
-
-    const textMesh4 = textMesh1.clone();
-    textMesh4.position.set(-23.15, 3.9, 40.2);
-    textMesh4.geometry = fontGeometry4;
-
-    const textMesh5 = textMesh1.clone();
-    textMesh5.position.set(-23.725, 2.95, 40.2);
-    textMesh5.geometry = fontGeometry5;
-
-    const textMesh6 = textMesh1.clone();
-    textMesh6.position.set(-23.98, 5, 40.2);
-    textMesh6.geometry = fontGeometry6;
-
-    scene.add(textMesh1);
-    scene.add(textMesh2);
-    scene.add(textMesh3);
-    scene.add(textMesh4);
-    scene.add(textMesh5);
-    scene.add(textMesh6);
-});
-
-
-
-// buttonPosition.push([-24.1975, 4.5, 40.3]);
-// buttonPosition.push([-22.1975, 4.5, 40.3]);
-// buttonPosition.push([-24.1975, 4, 40.3]);
-// buttonPosition.push([-22.1975, 4, 40.3]);
-// buttonPosition.push([-22.1975, 3, 40.3]);
