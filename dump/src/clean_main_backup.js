@@ -65,6 +65,8 @@ const cameraSpeed = 200;
 const fogDensity = 0.011;
 const gradientPoint = 54;
 const lanternColor = 0xf04e03;
+const lightIntensity = 1;
+const lightRadius = 100;
 
 let fogRedColor = 216;
 let fogGreenColor = 183;
@@ -74,6 +76,7 @@ let fogColor = new THREE.Color("rgb(" + fogRedColor + ", " + fogGreenColor + ", 
 const redColorSample = Math.floor(fogRedColor / gradientPoint);
 const greenColorSample = Math.floor(fogGreenColor / gradientPoint);
 const blueColorSample = Math.floor(fogBlueColor / gradientPoint);
+const clock = new THREE.Clock();
 const direction = new THREE.Vector3();
 const mousePointer = new THREE.Vector2(1, 1);
 const raycaster = new THREE.Raycaster();
@@ -236,7 +239,19 @@ const buttonAmount = 5;
 const buttonMesh = new THREE.InstancedMesh(buttonGeometry, buttonMaterial, buttonAmount);
 const buttonColor = new THREE.Color();
 let buttonPosition = [];
+buttonMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 scene.add(buttonMesh);
+
+const lampsGeometry = new THREE.SphereBufferGeometry(0.1, 10, 10);
+const lampsMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff // Must be set to white so it doesn't affect setColorAt method
+});
+const lampsAmount = 4;
+const lampsMesh = new THREE.InstancedMesh(lampsGeometry, lampsMaterial, lampsAmount);
+const lampsColor = new THREE.Color();
+const scaleLamps = new THREE.Object3D();
+lampsMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+scene.add(lampsMesh);
 
 function instancingObject(gltf, name, amount = 1, scale = [1, 1, 1]) {
     const object3D = gltf.scene.getObjectByName(name);
@@ -335,7 +350,7 @@ objectLoader.load("./../models/japanese_gate/scene_low.gltf", (gltf) => {
 objectLoader.load("./../models/1972.158.2_guardian_figure_nio/scene_low.gltf", (gltf) => {
     nioMeshA = instancingObject(gltf, "Guardian_2objcleanermaterialmergergles", 1, scale = [3.5, 3.5, 3.5]);
     nioMeshA.material.metalness = 0.0;
-    nioMeshA.material.roughness = 0.9;
+    nioMeshA.material.roughness = 0.8;
     scene.add(nioMeshA);
 
     // console.log(dumpObject(gltf.scene).join("\n"));
@@ -344,7 +359,7 @@ objectLoader.load("./../models/1972.158.2_guardian_figure_nio/scene_low.gltf", (
 objectLoader.load("./../models/1972.158.1_guardian_figure_nio/scene_low.gltf", (gltf) => {
     nioMeshB = instancingObject(gltf, "Guardian_1objcleanermaterialmergergles", 1, scale = [3.5, 3.5, 3.5]);
     nioMeshB.material.metalness = 0.0;
-    nioMeshB.material.roughness = 0.9;
+    nioMeshB.material.roughness = 0.8;
     scene.add(nioMeshB);
 
     // console.log(dumpObject(gltf.scene).join("\n"));
@@ -513,126 +528,19 @@ function drawButton() {
     }
 }
 
-function animateScene() {
-    if (startWebGL) {
-        if (fpsControls.isLocked === true) {
-            time = performance.now();
-            delta = (time - prevTime) / 1000;
-
-            velocity.x -= velocity.x * 10.0 * delta;
-            velocity.z -= velocity.z * 10.0 * delta;
-
-            direction.x = Number(moveLeft) - Number(moveRight);
-            direction.z = Number(moveForward) - Number(moveBackward);
-            direction.normalize(); // This ensures consistent movements in all directions
-
-            if (moveLeft || moveRight) velocity.x -= direction.x * cameraSpeed * delta;
-            if (moveForward || moveBackward) velocity.z -= direction.z * cameraSpeed * delta;
-
-            fpsControls.getObject().translateX(velocity.x * delta);
-            fpsControls.getObject().translateZ(velocity.z * delta);
-
-            prevTime = time;
+function drawLamps() {
+    if (lampsMesh) {
+        let idx = 0;
+        for (let i = 0; i < lampsAmount; i++) {
+            scaleLamps.position.set(lanternPosition[idx][0], clippedHeightPointLight, lanternPosition[idx][2]);
+            scaleLamps.updateMatrix();
+            lampsMesh.setMatrixAt(idx, scaleLamps.matrix);
+            lampsMesh.setColorAt(idx, lampsColor.setHex(0xf04e03));
+            idx++;
         }
+        lampsMesh.matrixAutoUpdate = false;
+        lampsMesh.instanceMatrix.needsUpdate = false;
     }
-
-    ctrTimeDay++;
-
-    if (ctrTimeDay % 12 == 0) {
-        if (ctrDay == 0) {
-            if (fogRedColor - redColorSample >= 0) {
-                fogRedColor -= redColorSample;
-            }
-            if (fogGreenColor - greenColorSample >= 0) {
-                fogGreenColor -= greenColorSample;
-            }
-            if (fogBlueColor - blueColorSample >= 0) {
-                fogBlueColor -= blueColorSample;
-            }
-        } else {
-            if (fogRedColor + redColorSample <= 216) {
-                fogRedColor += redColorSample;
-            }
-            if (fogGreenColor + greenColorSample <= 183) {
-                fogGreenColor += greenColorSample;
-            }
-            if (fogBlueColor + blueColorSample <= 140) {
-                fogBlueColor += blueColorSample;
-            }
-        }
-
-        if (fogRedColor == 0 && fogGreenColor == 0 && fogBlueColor == 0) {
-            ctrDay = 1;
-            console.log("mati");
-
-            if (lampsVisible[0] == true) {
-                pointLight1.intensity = 0;
-            }
-            if (lampsVisible[1] == true) {
-                pointLight2.intensity = 0;
-            }
-            if (lampsVisible[2] == true) {
-                pointLight3.intensity = 0;
-            }
-            if (lampsVisible[3] == true) {
-                pointLight4.intensity = 0;
-            }
-        } else if (fogRedColor == 216 && fogGreenColor == 183 && fogBlueColor == 140) {
-            ctrDay = 0;
-            console.log("nyala")
-
-            if (lampsVisible[0] == true) {
-                pointLight1.intensity = 1;
-            }
-            if (lampsVisible[1] == true) {
-                pointLight2.intensity = 1;
-            }
-            if (lampsVisible[2] == true) {
-                pointLight3.intensity = 1;
-            }
-            if (lampsVisible[3] == true) {
-                pointLight4.intensity = 1;
-            }
-        }
-
-        fogColor = new THREE.Color("rgb(" + fogRedColor + ", " + fogGreenColor + ", " + fogBlueColor + ")");
-        scene.background = fogColor;
-        scene.fog = new THREE.FogExp2(fogColor, fogDensity);
-        ctrTimeDay = 0;
-    }
-
-    // if (ctrDay == 300) {
-    //     fogColor = 0xd8b88d;
-    //     scene.background = fogColor;
-    //     scene.fog = new THREE.FogExp2(fogColor, fogDensity);
-    // } else if (ctrDay == 600) {
-    //     ctrDay = 0;
-    //     fogColor = 0x000000;
-    //     scene.background = fogColor;
-    //     scene.fog = null;
-    // }
-
-    date = Date.now() * 0.0005;
-
-    // Change SpotLight Position
-    spotlight.position.x = Math.cos(date) * borderRadius;
-    spotlight.position.z = Math.sin(date) * borderRadius;
-    spotlight.rotation.x += 0.00001;
-    spotlight.target.position.set(0, 0, 0);
-    // // orbitControls.update();
-
-    // scene.rotation.y += 0.005;
-
-    requestAnimationFrame(animateScene);
-    drawStoneWall();
-    drawStoneLantern();
-    drawPavedFloor();
-    drawBambooStraw();
-    drawToriiGate();
-    drawGuardianNio();
-
-    renderer.render(scene, camera);
-    rendererStats.update(renderer);
 }
 
 function setObjectPosition() {
@@ -1010,312 +918,193 @@ function setObjectPosition() {
 
 setObjectPosition();
 
+const pointLight1 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight1.position.set(lanternPosition[0][0], clippedHeightPointLight, lanternPosition[0][2]);
+pointLight1.castShadow = true;
+pointLight1.shadow.autoUpdate = false;
+pointLight1.shadow.needsUpdate = true;
+pointLight1.shadow.bias = -0.01;
+// pointLight1.shadow.camera.far = 100;
+// pointLight1.shadow.camera.near = 50;
+// pointLight1.shadow.radius = 100;
+pointLight1.shadow.radius = lightRadius;
+pointLight1.visible = true;
+scene.add(pointLight1);
+
+const pointLight2 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight2.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
+pointLight2.castShadow = true;
+pointLight2.shadow.autoUpdate = false;
+pointLight2.shadow.needsUpdate = true;
+pointLight2.shadow.bias = -0.01;
+// pointLight2.shadow.camera.far = 100;
+// pointLight2.shadow.camera.near = 50;
+// pointLight2.shadow.radius = 100;
+pointLight2.shadow.radius = lightRadius;
+pointLight2.visible = true;
+scene.add(pointLight2);
+
+const pointLight3 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight3.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
+pointLight3.castShadow = true;
+pointLight3.shadow.autoUpdate = false;
+pointLight3.shadow.needsUpdate = true;
+pointLight3.shadow.bias = -0.01;
+// pointLight3.shadow.camera.far = 100;
+// pointLight3.shadow.camera.near = 50;
+// pointLight3.shadow.radius = 100;
+pointLight3.shadow.radius = lightRadius;
+pointLight3.visible = true;
+scene.add(pointLight3);
+
+const pointLight4 = new THREE.PointLight(lanternColor, lightIntensity);
+pointLight4.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
+pointLight4.castShadow = true;
+pointLight4.shadow.autoUpdate = false;
+pointLight4.shadow.needsUpdate = true;
+pointLight4.shadow.bias = -0.01;
+// pointLight4.shadow.camera.far = 100;
+// pointLight4.shadow.camera.near = 50;
+// pointLight4.shadow.radius = 100;
+pointLight4.shadow.radius = lightRadius;
+pointLight4.visible = true;
+scene.add(pointLight4);
+
+const spotlight = new THREE.SpotLight(0x994a0e, 8, 125, Math.PI / 4);
+spotlight.target.position.set(0, 0, 0);
+spotlight.position.set(0, 80, 0);
+spotlight.castShadow = true;
+spotlight.shadow.bias = -0.003;
+spotlight.shadow.camera.far = 50;
+spotlight.shadow.camera.fov = 30;
+spotlight.shadow.camera.near = 25;
+spotlight.shadow.mapSize.width = 2048;
+spotlight.shadow.mapSize.height = 2048;
+spotlight.add(new THREE.Mesh(
+    new THREE.SphereGeometry(4, 32, 32),
+    new THREE.MeshBasicMaterial({
+        color: 0xd15e06
+    })
+));
+scene.add(spotlight);
+
 /**
  * Because InstancedBufferAttribute stands differently for each instance, draw calls for this Mesh
    should be called only once (the first time renderer runs) so it doesn't replace any other instance
    with new attribute (happened when updating matrix).
  */
 drawButton();
+drawLamps();
 
-
-
-objectLoader.load("./../models/shitennoji/scene_low.gltf", (gltf) => {
-    // console.log(dumpObject(gltf.scene).join("\n"));
-    gltf.scene.traverse((child) => {
-        if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            child.material.metalness = 0.15;
-        }
-    });
-    gltf.scene.position.set(0, -0.45, -23.9);
-    gltf.scene.scale.set(0.0085, 0.0085, 0.0085);
-    // console.log(gltf.scene);
-    scene.add(gltf.scene);
-});
-
-
-
-
-
-
-
-
-// var pointLightMesh = new THREE.InstancedMesh(new THREE.SphereBufferGeometry(0.1, 10, 10), new THREE.MeshBasicMaterial({
-//     color: lanternColor,
-// }), 4);
-// pointLightMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-// pointLightMesh.castShadow = true;
-// pointLightMesh.receiveShadow = true;
-
-// var pointLightGeometry = new THREE.Mesh(new THREE.SphereBufferGeometry(0.1, 10, 10), new THREE.MeshBasicMaterial({
-//     color: lanternColor,
-// }));
-var lightIntensity = 1;
-var lightRadius = 100;
-
-var pointLight1 = new THREE.PointLight(lanternColor, lightIntensity);
-// var pointLight1 = new THREE.PointLight(lanternColor);
-pointLight1.position.set(lanternPosition[0][0], clippedHeightPointLight, lanternPosition[0][2]);
-// pointLight1.add(pointLightMesh);
-pointLight1.castShadow = true;
-pointLight1.shadow.autoUpdate = false;
-pointLight1.shadow.needsUpdate = true;
-// EXPERIMENTAL
-// pointLight1.shadow.camera.near = 50;
-// pointLight1.shadow.camera.far = 100;
-pointLight1.shadow.bias = -0.01;
-pointLight1.shadow.radius = lightRadius;
-// pointLight1.shadow.radius = 100;
-scene.add(pointLight1);
-// scene.add(new THREE.PointLightHelper(pointLight1, 0.1, 0xff00ff));
-// console.log(pointLight1);
-
-var pointLight2 = new THREE.PointLight(lanternColor, lightIntensity);
-// var pointLight2 = new THREE.PointLight(lanternColor);
-pointLight2.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
-// pointLight2.add(pointLightMesh);
-pointLight2.castShadow = true;
-pointLight2.shadow.autoUpdate = false;
-pointLight2.shadow.needsUpdate = true;
-// EXPERIMENTAL
-// pointLight2.shadow.camera.near = 50;
-// pointLight2.shadow.camera.far = 100;
-pointLight2.shadow.bias = -0.01;
-pointLight2.shadow.radius = lightRadius;
-// pointLight2.shadow.radius = 100;
-scene.add(pointLight2);
-// scene.add(new THREE.PointLightHelper(pointLight2, 0.1, 0xff00ff));
-
-var pointLight3 = new THREE.PointLight(lanternColor, lightIntensity);
-// var pointLight3 = new THREE.PointLight(lanternColor);
-pointLight3.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
-// pointLight3.add(pointLightMesh);
-pointLight3.castShadow = true;
-pointLight3.shadow.autoUpdate = false;
-pointLight3.shadow.needsUpdate = true;
-// EXPERIMENTAL
-// pointLight3.shadow.camera.near = 50;
-// pointLight3.shadow.camera.far = 100;
-pointLight3.shadow.bias = -0.01;
-pointLight3.shadow.radius = lightRadius;
-// pointLight3.shadow.radius = 100;
-scene.add(pointLight3);
-// scene.add(new THREE.PointLightHelper(pointLight3, 0.1, 0xff00ff));
-
-var pointLight4 = new THREE.PointLight(lanternColor, lightIntensity);
-// var pointLight4 = new THREE.PointLight(lanternColor);
-pointLight4.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
-// pointLight4.add(pointLightMesh);
-pointLight4.castShadow = true;
-pointLight4.shadow.autoUpdate = false;
-pointLight4.shadow.needsUpdate = true;
-// EXPERIMENTAL
-// pointLight4.shadow.camera.near = 50;
-// pointLight4.shadow.camera.far = 100;
-pointLight4.shadow.bias = -0.01;
-pointLight4.shadow.radius = lightRadius;
-// pointLight4.shadow.radius = 100;
-scene.add(pointLight4);
-// scene.add(new THREE.PointLightHelper(pointLight4, 0.1, 0xff00ff));
-
-pointLight1.visible = true;
-pointLight2.visible = true;
-pointLight3.visible = true;
-pointLight4.visible = true;
-
-var spotlight = new THREE.SpotLight(0x994a0e, 8, 125, Math.PI / 4);
-spotlight.position.set(0, 80, 0);
-spotlight.target.position.set(0, 0, 0);
-spotlight.castShadow = true;
-// EXPERIMENTAL
-spotlight.shadow.camera.near = 25;
-spotlight.shadow.camera.far = 50;
-spotlight.shadow.camera.fov = 30;
-spotlight.shadow.mapSize.width = 2048;
-spotlight.shadow.mapSize.height = 2048;
-spotlight.shadow.bias = -0.003;
-// EXPERIMENTAL
-spotlight.add(
-    new THREE.Mesh(
-        new THREE.SphereGeometry(4, 32, 32),
-        new THREE.MeshBasicMaterial({
-            color: 0xd15e06,
-        })
-    )
-);
-scene.add(spotlight);
-// scene.add(new THREE.SpotLightHelper(spotlight));
-// console.log(spotlight)
-
-
-
-
-// var textGeo =
-const onMouseClick = (event) => {
-    event.preventDefault();
+window.addEventListener("click", (e) => {
+    e.preventDefault();
 
     if (cameraControls == false) {
         mousePointer.x = ((window.innerWidth / 2) / window.innerWidth) * 2 - 1;
         mousePointer.y = -((window.innerHeight / 2) / window.innerHeight) * 2 + 1;
     } else {
-        mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        mousePointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mousePointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     }
 
     raycaster.setFromCamera(mousePointer, camera);
     const intersects = raycaster.intersectObject(buttonMesh);
 
     if (intersects.length > 0) {
-        var testID = intersects[0].instanceId;
+        const buttonID = intersects[0].instanceId;
 
-        if (testID == 0) {
-            buttonMesh.getColorAt(testID, buttonColor);
+        if (buttonID == 0) {
             if (lampsVisible[0] == true) {
                 lampsVisible[0] = false;
                 pointLight1.intensity = 0;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0xff0000));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             } else {
                 lampsVisible[0] = true;
                 pointLight1.intensity = lightIntensity;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             }
-
-
-            // buttonMesh.getColorAt(testID, buttonColor);
-
-            // if (buttonColor.equals(new THREE.Color().setHex(0xffffff))) {
-            //     buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-            //     buttonMesh.instanceColor.needsUpdate = true;
-            // }
-        } else if (testID == 1) {
+        } else if (buttonID == 1) {
             if (lampsVisible[1] == true) {
                 lampsVisible[1] = false;
                 pointLight2.intensity = 0;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0xff0000));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             } else {
                 lampsVisible[1] = true;
                 pointLight2.intensity = lightIntensity;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             }
-
-
-            // buttonMesh.getColorAt(testID, buttonColor);
-
-            // if (buttonColor.equals(new THREE.Color().setHex(0xffffff))) {
-            //     buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-            //     buttonMesh.instanceColor.needsUpdate = true;
-            // }
-        } else if (testID == 2) {
+        } else if (buttonID == 2) {
             if (lampsVisible[2] == true) {
                 lampsVisible[2] = false;
                 pointLight3.intensity = 0;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0xff0000));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             } else {
                 lampsVisible[2] = true;
                 pointLight3.intensity = lightIntensity;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             }
-
-
-            // buttonMesh.getColorAt(testID, buttonColor);
-
-            // if (buttonColor.equals(new THREE.Color().setHex(0xffffff))) {
-            //     buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-            //     buttonMesh.instanceColor.needsUpdate = true;
-            // }
-        } else if (testID == 3) {
+        } else if (buttonID == 3) {
             if (lampsVisible[3] == true) {
                 lampsVisible[3] = false;
                 pointLight4.intensity = 0;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0xff0000));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
             } else {
                 lampsVisible[3] = true;
                 pointLight4.intensity = lightIntensity;
-                buttonMesh.setColorAt(testID, buttonColor.setHex(0x00ff00));
-                buttonMesh.instanceColor.needsUpdate = true;
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+
+                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            }
+        } else if (buttonID == 4) {
+            if (cameraControls == true) {
+                cameraControls = false;
+                orbitControls.enabled = false;
+                fpsControls.lock();
+                dot.style.display = "block";
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+            } else {
+                cameraControls = true;
+                orbitControls.enabled = true;
+                fpsControls.unlock();
+                dot.removeAttribute("style");
+                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
             }
         }
 
-
-        // if (intersects[0].object.name === "btn1") {
-        //     if (lampsVisible[0] == true) {
-        //         lampsVisible[0] = false;
-        //         // pointLight1.visible = false;
-        //         pointLight1.intensity = 0;
-        //         intersects[0].object.material.color.set(0xff0000);
-        //     } else {
-        //         lampsVisible[0] = true;
-        //         // pointLight1.visible = true;
-        //         pointLight1.intensity = lightIntensity;
-        //         intersects[0].object.material.color.set(0xffffff);
-        //     }
-        // } else if (intersects[0].object.name === "btn2") {
-        //     if (lampsVisible[3] == true) {
-        //         lampsVisible[3] = false;
-        //         // pointLight4.visible = false;
-        //         pointLight4.intensity = 0;
-        //         intersects[0].object.material.color.set(0xff0000);
-        //     } else {
-        //         lampsVisible[3] = true;
-        //         // pointLight4.visible = true;
-        //         pointLight4.intensity = lightIntensity;
-        //         intersects[0].object.material.color.set(0xffffff);
-        //     }
-        // } else if (intersects[0].object.name === "btn3") {
-        //     if (lampsVisible[1] == true) {
-        //         lampsVisible[1] = false;
-        //         // pointLight2.visible = false;
-        //         pointLight2.intensity = 0;
-        //         intersects[0].object.material.color.set(0xff0000);
-        //     } else {
-        //         lampsVisible[1] = true;
-        //         // pointLight2.visible = true;
-        //         pointLight2.intensity = lightIntensity;
-        //         intersects[0].object.material.color.set(0xffffff);
-        //     }
-        // } else if (intersects[0].object.name === "btn4") {
-        //     if (lampsVisible[2] == true) {
-        //         lampsVisible[2] = false;
-        //         // pointLight3.visible = false;
-        //         pointLight3.intensity = 0;
-        //         intersects[0].object.material.color.set(0xff0000);
-        //     } else {
-        //         lampsVisible[2] = true;
-        //         // pointLight3.visible = true;
-        //         pointLight3.intensity = lightIntensity;
-        //         intersects[0].object.material.color.set(0xffffff);
-        //     }
-        // } else if (intersects[0].object.name === "btn5") {
-        //     if (cameraControls == false) {
-        //         cameraControls = true;
-        //         intersects[0].object.material.color.set(0xffffff);
-        //         fpsControls.unlock();
-        //         document.getElementById("redLaserSight").style.display = "none";
-        //         orbitControls.enabled = true;
-        //     } else {
-        //         cameraControls = false;
-        //         intersects[0].object.material.color.set(0x00ff00);
-        //         orbitControls.enabled = false;
-        //         fpsControls.lock();
-        //         document.getElementById("redLaserSight").style.display = "true";
-        //     }
-        // }
+        buttonMesh.instanceColor.needsUpdate = true;
+        lampsMesh.instanceMatrix.needsUpdate = true;
     }
-}
-
-window.addEventListener("click", onMouseClick);
-
-
-
-
+});
 document.body.addEventListener("keydown", (e) => {
     switch (e.keyCode) {
         case 38: // UP
@@ -1356,3 +1145,288 @@ document.body.addEventListener("keyup", (e) => {
             break;
     }
 }, false);
+
+function animateScene() {
+    if (startWebGL) {
+        if (fpsControls.isLocked === true) {
+            time = performance.now();
+            delta = (time - prevTime) / 1000;
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+
+            direction.x = Number(moveLeft) - Number(moveRight);
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.normalize(); // This ensures consistent movements in all directions
+
+            if (moveLeft || moveRight) velocity.x -= direction.x * cameraSpeed * delta;
+            if (moveForward || moveBackward) velocity.z -= direction.z * cameraSpeed * delta;
+
+            fpsControls.getObject().translateX(velocity.x * delta);
+            fpsControls.getObject().translateZ(velocity.z * delta);
+
+            prevTime = time;
+        }
+    }
+
+    ctrTimeDay++;
+
+    if (ctrTimeDay % 12 == 0) {
+        if (ctrDay == 0) {
+            if (fogRedColor - redColorSample >= 0) {
+                fogRedColor -= redColorSample;
+            }
+            if (fogGreenColor - greenColorSample >= 0) {
+                fogGreenColor -= greenColorSample;
+            }
+            if (fogBlueColor - blueColorSample >= 0) {
+                fogBlueColor -= blueColorSample;
+            }
+        } else {
+            if (fogRedColor + redColorSample <= 216) {
+                fogRedColor += redColorSample;
+            }
+            if (fogGreenColor + greenColorSample <= 183) {
+                fogGreenColor += greenColorSample;
+            }
+            if (fogBlueColor + blueColorSample <= 140) {
+                fogBlueColor += blueColorSample;
+            }
+        }
+
+        if (fogRedColor == 0 && fogGreenColor == 0 && fogBlueColor == 0) {
+            ctrDay = 1;
+            fogColor = 0x000000;
+            scene.background = fogColor;
+            scene.fog = null;
+            if (lampsVisible[0] == true) {
+                pointLight1.intensity = 0;
+                scaleLamps.position.set(lanternPosition[0][0], lanternPosition[0][1], lanternPosition[0][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(0, scaleLamps.matrix);
+            }
+            if (lampsVisible[1] == true) {
+                pointLight2.intensity = 0;
+                scaleLamps.position.set(lanternPosition[1][0], lanternPosition[1][1], lanternPosition[1][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(1, scaleLamps.matrix);
+            }
+            if (lampsVisible[2] == true) {
+                pointLight3.intensity = 0;
+                scaleLamps.position.set(lanternPosition[2][0], lanternPosition[2][1], lanternPosition[2][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(2, scaleLamps.matrix);
+            }
+            if (lampsVisible[3] == true) {
+                pointLight4.intensity = 0;
+                scaleLamps.position.set(lanternPosition[3][0], lanternPosition[3][1], lanternPosition[3][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(3, scaleLamps.matrix);
+            }
+
+            lampsMesh.instanceMatrix.needsUpdate = true;
+        } else if (fogRedColor == 216 && fogGreenColor == 183 && fogBlueColor == 140) {
+            ctrDay = 0;
+            fogColor = 0xd8b78c;
+            scene.background = fogColor;
+            scene.fog = new THREE.FogExp2(fogColor, fogDensity);
+            if (lampsVisible[0] == true) {
+                pointLight1.intensity = 1;
+                scaleLamps.position.set(lanternPosition[0][0], clippedHeightPointLight, lanternPosition[0][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(0, scaleLamps.matrix);
+            }
+            if (lampsVisible[1] == true) {
+                pointLight2.intensity = 1;
+                scaleLamps.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(1, scaleLamps.matrix);
+            }
+            if (lampsVisible[2] == true) {
+                pointLight3.intensity = 1;
+                scaleLamps.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(2, scaleLamps.matrix);
+            }
+            if (lampsVisible[3] == true) {
+                pointLight4.intensity = 1;
+                scaleLamps.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(3, scaleLamps.matrix);
+            }
+
+            lampsMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        fogColor = new THREE.Color("rgb(" + fogRedColor + ", " + fogGreenColor + ", " + fogBlueColor + ")");
+        scene.background = fogColor;
+        scene.fog = new THREE.FogExp2(fogColor, fogDensity);
+        ctrTimeDay = 0;
+    }
+
+    if (ctrDay == 300) {
+        fogColor = 0xd8b78c;
+        scene.background = fogColor;
+        scene.fog = new THREE.FogExp2(fogColor, fogDensity);
+    } else if (ctrDay == 600) {
+        ctrDay = 0;
+        fogColor = 0x000000;
+        scene.background = fogColor;
+        scene.fog = null;
+    }
+
+    date = Date.now() * 0.0005;
+
+    // Change SpotLight Position
+    spotlight.position.x = Math.cos(date) * borderRadius;
+    spotlight.position.z = Math.sin(date) * borderRadius;
+    spotlight.rotation.x += 0.00001;
+    spotlight.target.position.set(0, 0, 0);
+    // orbitControls.update();
+
+    // scene.rotation.y += 0.005;
+
+    requestAnimationFrame(animateScene);
+    drawStoneWall();
+    drawStoneLantern();
+    drawPavedFloor();
+    drawBambooStraw();
+    drawToriiGate();
+    drawGuardianNio();
+
+    var delta = clock.getDelta();
+    if (mixerA) {
+        mixerA.update(delta);
+        mixerB.update(delta);
+    }
+
+    renderer.render(scene, camera);
+    rendererStats.update(renderer);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// Sakura Tree
+let animMixers = [];
+let mixerA, mixerB;
+let treeA, treeB;
+
+objectLoader.load("./../models/sakura_tree/scene_low.gltf", (gltf) => {
+    const treeA = gltf.scene;
+    treeA.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+    treeA.position.set(-32.4625, 0, -5.2);
+    scene.add(treeA);
+
+    // console.log(dumpObject(treeA).join("\n"));
+    // console.log(gltf.scene);
+
+    // const treeB = SkeletonUtils.clone(treeA);
+    // treeB.position.x = 32.4625;
+    // scene.add(treeB);
+
+    // console.log(treeA);
+    // console.log(treeB);
+    // console.log(scene.children)
+
+    mixerA = new THREE.AnimationMixer(treeA);
+    gltf.animations[0].optimize();
+    gltf.animations.forEach((clip) => {
+        mixerA.clipAction(clip).play();
+    });
+
+    // treeB = gltf.scene.clone();
+    // treeB.position.set(32.4625, 0, -5.2);
+    // scene.add(treeB);
+    // console.log("pohon ")
+    // console.log(treeB)
+    // mixerB = new THREE.AnimationMixer(treeB);
+    // gltf.animations[0].optimize();
+    // gltf.animations.forEach((clip) => {
+    //     mixerB.clipAction(clip).play();
+    // });
+    // animMixers.push(mixerA);
+
+    // mixerB = new THREE.AnimationMixer(treeB);
+    // gltf.animations[0].optimize();
+    // gltf.animations.forEach((clip) => {
+    //     mixerB.clipAction(clip).play();
+    // });
+    // // animMixers.push(mixerB);
+
+    // let clipAnim = gltf.animations[0];
+    // clipAnim.optimize();
+
+    // let actA = this.mixer1.clipAction(anim);
+    // let actB = this.mixer2.clipAction(anim);
+});
+objectLoader.load("./../models/sakura_tree/scene_low.gltf", (gltf) => {
+    const treeB = gltf.scene;
+    treeB.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+    treeB.position.set(32.4625, 0, -5.2);
+    scene.add(treeB);
+
+    // console.log(dumpObject(treeA).join("\n"));
+    // console.log(gltf.scene);
+
+    // const treeB = SkeletonUtils.clone(treeA);
+    // treeB.position.x = 32.4625;
+    // scene.add(treeB);
+
+    // console.log(treeA);
+    // console.log(treeB);
+    // console.log(scene.children)
+
+    mixerB = new THREE.AnimationMixer(treeB);
+    gltf.animations[0].optimize();
+    gltf.animations.forEach((clip) => {
+        mixerB.clipAction(clip).play();
+    });
+
+    // treeB = gltf.scene.clone();
+    // treeB.position.set(32.4625, 0, -5.2);
+    // scene.add(treeB);
+    // console.log("pohon ")
+    // console.log(treeB)
+    // mixerB = new THREE.AnimationMixer(treeB);
+    // gltf.animations[0].optimize();
+    // gltf.animations.forEach((clip) => {
+    //     mixerB.clipAction(clip).play();
+    // });
+    // animMixers.push(mixerA);
+
+    // mixerB = new THREE.AnimationMixer(treeB);
+    // gltf.animations[0].optimize();
+    // gltf.animations.forEach((clip) => {
+    //     mixerB.clipAction(clip).play();
+    // });
+    // // animMixers.push(mixerB);
+
+    // let clipAnim = gltf.animations[0];
+    // clipAnim.optimize();
+
+    // let actA = this.mixer1.clipAction(anim);
+    // let actB = this.mixer2.clipAction(anim);
+});
+
+// treeB = treeA.clone();
+// treeB.position.x = 32.4625;
+// scene.add(treeB);
