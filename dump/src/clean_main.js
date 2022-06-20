@@ -1376,16 +1376,16 @@ function animateScene() {
         ctrTimeDay = 0;
     }
 
-    if (ctrDay == 300) {
-        fogColor = 0xd8b88d;
-        scene.background = fogColor;
-        scene.fog = new THREE.FogExp2(fogColor, fogDensity);
-    } else if (ctrDay == 600) {
-        ctrDay = 0;
-        fogColor = 0x000000;
-        scene.background = fogColor;
-        scene.fog = null;
-    }
+    // if (ctrDay == 300) {
+    //     fogColor = 0xd8b88d;
+    //     scene.background = fogColor;
+    //     scene.fog = new THREE.FogExp2(fogColor, fogDensity);
+    // } else if (ctrDay == 600) {
+    //     ctrDay = 0;
+    //     fogColor = 0x000000;
+    //     scene.background = fogColor;
+    //     scene.fog = null;
+    // }
 
     date = Date.now() * 0.0005;
     delta = clock.getDelta();

@@ -1282,9 +1282,9 @@ function animateScene() {
     spotlight.position.z = Math.sin(date) * borderRadius;
     spotlight.rotation.x += 0.00001;
     spotlight.target.position.set(0, 0, 0);
-    // orbitControls.update();
+    orbitControls.update();
 
-    // scene.rotation.y += 0.005;
+    scene.rotation.y += 0.003;
 
     requestAnimationFrame(animateScene);
     drawStoneWall();
