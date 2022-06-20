@@ -9,13 +9,23 @@
         <script src="../node_modules/three/examples/js/controls/OrbitControls.js"></script>
         <script src="../node_modules/three/examples/js/controls/PointerLockControls.js"></script>
         <script src="../node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
-        <script src="../node_modules/three/examples/js/utils/BufferGeometryUtils.js"></script>
-        <script src="../node_modules/three/src/lights/LightShadow.js"></script>
+        <!-- <script src="../node_modules/three/examples/js/utils/BufferGeometryUtils.js"></script> -->
+        <!-- <script src="../node_modules/three/examples/js/utils/SkeletonUtils.js"></script> -->
+        <script type="module" src="../node_modules/three/src/lights/LightShadow.js"></script>
+        <script type="module" src="../node_modules/three/src/animation/AnimationMixer.js"></script>
         <script src="./src/threex.rendererstats.js"></script>
         <link rel="icon" type="image/png" href="./">
         <link rel="stylesheet" type="text/css" href="./src/style.css">
     </head>
     <body>
         <script src="./src/clean_main.js"></script>
+        <!-- <script type="module">
+            // import * as THREE from "../node_modules/three/build/three.module.js";
+            import SkeletonUtils from "../node_modules/three/examples/jsm/utils/SkeletonUtils.js";
+
+            treeB = SkeletonUtils.clone(treeA);
+            treeB.position.x = 32.4625;
+            scene.add(treeB);
+        </script> -->
     </body>
 </html>
