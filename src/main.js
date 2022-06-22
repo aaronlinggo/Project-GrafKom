@@ -69,6 +69,11 @@ const dot = document.createElement("div");
 dot.id = "redLaserSight";
 document.body.appendChild(dot);
 
+const keyToggle = document.createElement("div");
+keyToggle.id = "keyToggle";
+keyToggle.innerHTML = "Press 1 : Show FPS - Press 2 : Show Debugger - Press 3 : Show Detail -  Press T : Show All";
+document.body.appendChild(keyToggle);
+
 // World Setup
 const borderRadius = 60;
 const cameraSpeed = 200;

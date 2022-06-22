@@ -109,6 +109,26 @@ body {
     user-select: none;
 }
 
+#keyToggle {
+    background-color: #000;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.8;
+    display: block;
+    line-height: 22px;
+    padding: 8px 24px 8px 12px;
+    white-space: pre;
+    position: absolute;
+    left: 50%;
+    bottom: 0px;
+    transform: translate(-50%, 0%);
+    min-width: 14vw;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    text-align: center;
+}
+
 #redLaserSight {
     background-color: #f00;
     border-radius: 100%;
