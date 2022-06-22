@@ -71,7 +71,7 @@ document.body.appendChild(dot);
 
 const keyToggle = document.createElement("div");
 keyToggle.id = "keyToggle";
-keyToggle.innerHTML = "Press 1 : Show/Hide FPS - Press 2 : Show/Hide Debugger - Press 3 : Show/Hide Detail -  Press T : Show/Hide All";
+keyToggle.innerHTML = "Press 1 : Show/Hide FPS | Press 2 : Show/Hide Debugger | Press 3 : Show/Hide Detail |  Press T : Show/Hide All";
 document.body.appendChild(keyToggle);
 
 // World Setup
