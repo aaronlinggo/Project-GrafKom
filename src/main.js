@@ -14,10 +14,12 @@ function dumpObject(obj, lines = [], isLast = true, prefix = "") {
 const script = document.createElement("script");
 script.onload = () => {
     const stats = new Stats();
+    stats.dom.id = "fpsGraph";
+    stats.dom.setAttribute("class", "hideFPS");
     document.body.appendChild(stats.dom);
     requestAnimationFrame(function loop() {
         stats.update();
-        requestAnimationFrame(loop)
+        requestAnimationFrame(loop);
     });
 };
 script.src = "./src/stats.min.js";
@@ -25,6 +27,7 @@ document.head.appendChild(script);
 
 const rendererStats = new THREEx.RendererStats();
 rendererStats.domElement.id = "rendererStats";
+rendererStats.domElement.style.display = "none";
 document.body.appendChild(rendererStats.domElement);
 
 // Overlay Setup
@@ -34,6 +37,7 @@ let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
+let hideOverlay = [true, true, false];
 
 const overlay = document.createElement("div");
 overlay.id = "pointerLockOverlay";
@@ -45,10 +49,12 @@ overlay.addEventListener("click", () => {
 document.body.appendChild(overlay);
 
 const controlsCommand = [];
+controlsCommand.push("First Person Camera Controls:");
 controlsCommand.push("Press W to moving forward");
 controlsCommand.push("Press S to moving backward");
 controlsCommand.push("Press A to moving left");
 controlsCommand.push("Press D to moving right");
+controlsCommand.push("Orbit Camera Controls:");
 controlsCommand.push("Hold Left Mouse Button to rotate camera");
 controlsCommand.push("Hold Right Mouse Button to drag camera");
 controlsCommand.push("Scroll Mouse Wheel Up to zoom camera in");
@@ -56,7 +62,7 @@ controlsCommand.push("Scroll Mouse Wheel Down to zoom camera out");
 
 const detail = document.createElement("div");
 detail.id = "controlsDetail";
-detail.innerHTML = controlsCommand[0] + "\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3];
+detail.innerHTML = "<u>" + controlsCommand[0] + "</u>\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3] + "\r\n" + controlsCommand[4];
 document.body.appendChild(detail);
 
 const dot = document.createElement("div");
@@ -111,19 +117,18 @@ const ambient = new THREE.AmbientLight(0x404040, 1.5);
 scene.add(ambient);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-camera.position.set(0, 4, 53.5);
-camera.lookAt(0, 4, 4);
-
-window.addEventListener("resize", () => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-});
+camera.position.set(0, 4.15, 55);
+camera.lookAt(0, 4.15, 0);
 
 const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
-orbitControls.target.set(0, 4, 0);
-orbitControls.update();
 orbitControls.enabled = false;
+/**
+ * This isn't required if enableDamping and autoRotate is set to false. If orbitControls is updated and
+ * you want to use lookAt function from PerspectiveCamera, you have to place it in the animate function
+ * after orbitControls.update().
+ */
+orbitControls.target.set(0, 4.15, 0);
+orbitControls.update();
 
 const fpsControls = new THREE.PointerLockControls(camera, renderer.domElement);
 fpsControls.pointerSpeed = 0.5;
@@ -131,6 +136,7 @@ fpsControls.addEventListener("lock", () => {
     overlay.style.display = "none";
     dot.style.display = "block";
     startWebGL = true;
+    velocity = new THREE.Vector3();
 }, false);
 fpsControls.addEventListener("unlock", () => {
     if (!cameraControls) {
@@ -146,13 +152,21 @@ fpsControls.addEventListener("unlock", () => {
 const manager = new THREE.LoadingManager();
 manager.onStart = (url, itemsLoaded, itemsTotal) => {
     console.log("Started loading file: " + url + ".\nLoaded " + itemsLoaded + " of " + itemsTotal + " files.");
+    document.getElementById("loadingText").innerHTML = "Loaded " + itemsLoaded + " of " + itemsTotal + " files.";
 };
 manager.onLoad = () => {
     console.log("Loading complete!");
-    animateScene();
+    window.setTimeout(() => {
+        animateScene(); // Animate first then remove overlay
+        document.getElementById("loading").style.opacity = 0;
+        window.setTimeout(() => {
+            document.getElementById("loading").style.display = "none";
+        }, 1000)
+    }, 500);
 };
 manager.onProgress = (url, itemsLoaded, itemsTotal) => {
     console.log("Loading file: " + url + ".\nLoaded " + itemsLoaded + " of " + itemsTotal + " files.");
+    document.getElementById("loadingText").innerHTML = "Loaded " + itemsLoaded + " of " + itemsTotal + " files.";
 };
 manager.onError = (url) => {
     console.log("There was an error loading " + url + "!");
@@ -181,7 +195,7 @@ const groundMesh = new THREE.Mesh(
         displacementScale: 0.25,
         normalMap: groundNormalMap,
         roughnessMap: groundRoughnessMap,
-        roughness: 1.5
+        roughness: 1.5,
     })
 );
 groundMesh.receiveShadow = true;
@@ -226,10 +240,10 @@ let gateMesh, nioMeshA, nioMeshB;
 
 const panelGeometry = new THREE.BoxBufferGeometry(0.5, 3, 3);
 const panelMaterial = new THREE.MeshBasicMaterial({
-    map: textureLoader.load("textures/black-g444986ca3_low.jpg")
+    map: textureLoader.load("textures/black-g444986ca3_low.jpg"),
 });
 const panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
-panelMesh.position.set(-23.1975, 4, 40);
+panelMesh.position.set(-23.1975, 4.04, 40);
 panelMesh.rotation.y = Math.PI / 2;
 panelMesh.castShadow = true;
 panelMesh.receiveShadow = true;
@@ -237,79 +251,72 @@ scene.add(panelMesh);
 
 const fontLoader = new THREE.FontLoader(manager);
 fontLoader.load("./Oswald_Bold.json", (font) => {
-    const fontGeometry1 = new THREE.TextGeometry("Top Left", {
+    const textGeometry1 = new THREE.TextGeometry("Top Left", {
         font: font,
-        size: 0.1,
-        bevelSize: 0.2,
         height: 0.1,
-    });
-    const fontGeometry2 = new THREE.TextGeometry("Top Right", {
-        font: font,
         size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
     });
-    const fontGeometry3 = new THREE.TextGeometry("Bottom Left", {
+    const textGeometry2 = new THREE.TextGeometry("Top Right", {
         font: font,
+        height: 0.1,
         size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
     });
-    const fontGeometry4 = new THREE.TextGeometry("Bottom Right", {
+    const textGeometry3 = new THREE.TextGeometry("Bottom Left", {
         font: font,
+        height: 0.1,
         size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
     });
-    const fontGeometry5 = new THREE.TextGeometry("Change Camera Control", {
+    const textGeometry4 = new THREE.TextGeometry("Bottom Right", {
         font: font,
+        height: 0.1,
         size: 0.1,
-        bevelSize: 0.2,
-        height: 0.1,
     });
-    const fontGeometry6 = new THREE.TextGeometry("Control Panel", {
+    const textGeometry5 = new THREE.TextGeometry("Change Camera Control", {
         font: font,
+        height: 0.1,
+        size: 0.1,
+    });
+    const textGeometry6 = new THREE.TextGeometry("Control Panel", {
+        font: font,
+        height: 0.1,
         size: 0.2,
-        bevelSize: 0.2,
-        height: 0.1,
     });
 
-    const textMesh1 = new THREE.Mesh(fontGeometry1, new THREE.MeshBasicMaterial({
+    const textMesh1 = new THREE.Mesh(textGeometry1, new THREE.MeshBasicMaterial({
         color: 0xffffff
     }));
-    textMesh1.position.set(-24, 4.4, 40.2);
+    textMesh1.position.set(-24, 4.395, 40.2);
+    scene.add(textMesh1);
 
     const textMesh2 = textMesh1.clone();
-    textMesh2.position.set(-22.925, 4.4, 40.2);
-    textMesh2.geometry = fontGeometry2;
+    textMesh2.geometry = textGeometry2;
+    textMesh2.position.set(-22.925, 4.395, 40.2);
+    scene.add(textMesh2);
 
     const textMesh3 = textMesh1.clone();
-    textMesh3.position.set(-24, 3.9, 40.2);
-    textMesh3.geometry = fontGeometry3;
+    textMesh3.geometry = textGeometry3;
+    textMesh3.position.set(-24, 3.895, 40.2);
+    scene.add(textMesh3);
 
     const textMesh4 = textMesh1.clone();
-    textMesh4.position.set(-23.15, 3.9, 40.2);
-    textMesh4.geometry = fontGeometry4;
+    textMesh4.geometry = textGeometry4;
+    textMesh4.position.set(-23.15, 3.895, 40.2);
+    scene.add(textMesh4);
 
     const textMesh5 = textMesh1.clone();
-    textMesh5.position.set(-23.725, 2.95, 40.2);
-    textMesh5.geometry = fontGeometry5;
+    textMesh5.geometry = textGeometry5;
+    textMesh5.position.set(-23.728, 2.94, 40.2);
+    scene.add(textMesh5);
 
     const textMesh6 = textMesh1.clone();
-    textMesh6.position.set(-23.9825, 5, 40.2);
-    textMesh6.geometry = fontGeometry6;
-
-    scene.add(textMesh1);
-    scene.add(textMesh2);
-    scene.add(textMesh3);
-    scene.add(textMesh4);
-    scene.add(textMesh5);
+    textMesh6.geometry = textGeometry6;
+    textMesh6.position.set(-23.99, 5, 40.2);
     scene.add(textMesh6);
 });
 
 const buttonGeometry = new THREE.BoxBufferGeometry(0.1, 0.2, 0.2);
 const buttonMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff // Must be set to white so it doesn't affect setColorAt method
+    color: 0xffffff, // Must be set to white so it doesn't affect setColorAt method
 });
 const buttonAmount = 5;
 const buttonMesh = new THREE.InstancedMesh(buttonGeometry, buttonMaterial, buttonAmount);
@@ -320,7 +327,7 @@ scene.add(buttonMesh);
 
 const lampsGeometry = new THREE.SphereBufferGeometry(0.1, 10, 10);
 const lampsMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff // Must be set to white so it doesn't affect setColorAt method
+    color: 0xffffff, // Must be set to white so it doesn't affect setColorAt method
 });
 const lampsAmount = 4;
 const lampsMesh = new THREE.InstancedMesh(lampsGeometry, lampsMaterial, lampsAmount);
@@ -1040,10 +1047,9 @@ pointLight1.shadow.needsUpdate = true;
 pointLight1.shadow.bias = -0.01;
 // pointLight1.shadow.camera.far = 100;
 // pointLight1.shadow.camera.near = 50;
-// pointLight1.shadow.radius = 100;
 pointLight1.shadow.radius = lightRadius;
+pointLight1.name = "Lamp 1";
 pointLight1.visible = true;
-scene.add(pointLight1);
 
 const pointLight2 = new THREE.PointLight(lanternColor, lightIntensity);
 pointLight2.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
@@ -1053,10 +1059,9 @@ pointLight2.shadow.needsUpdate = true;
 pointLight2.shadow.bias = -0.01;
 // pointLight2.shadow.camera.far = 100;
 // pointLight2.shadow.camera.near = 50;
-// pointLight2.shadow.radius = 100;
 pointLight2.shadow.radius = lightRadius;
+pointLight2.name = "Lamp 2";
 pointLight2.visible = true;
-scene.add(pointLight2);
 
 const pointLight3 = new THREE.PointLight(lanternColor, lightIntensity);
 pointLight3.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
@@ -1066,10 +1071,9 @@ pointLight3.shadow.needsUpdate = true;
 pointLight3.shadow.bias = -0.01;
 // pointLight3.shadow.camera.far = 100;
 // pointLight3.shadow.camera.near = 50;
-// pointLight3.shadow.radius = 100;
 pointLight3.shadow.radius = lightRadius;
+pointLight3.name = "Lamp 3";
 pointLight3.visible = true;
-scene.add(pointLight3);
 
 const pointLight4 = new THREE.PointLight(lanternColor, lightIntensity);
 pointLight4.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
@@ -1079,10 +1083,16 @@ pointLight4.shadow.needsUpdate = true;
 pointLight4.shadow.bias = -0.01;
 // pointLight4.shadow.camera.far = 100;
 // pointLight4.shadow.camera.near = 50;
-// pointLight4.shadow.radius = 100;
 pointLight4.shadow.radius = lightRadius;
+pointLight4.name = "Lamp 4";
 pointLight4.visible = true;
-scene.add(pointLight4);
+
+const pointLightGroup = new THREE.Group();
+pointLightGroup.add(pointLight1);
+pointLightGroup.add(pointLight2);
+pointLightGroup.add(pointLight3);
+pointLightGroup.add(pointLight4);
+scene.add(pointLightGroup);
 
 const spotlight = new THREE.SpotLight(0x994a0e, 8, 125, Math.PI / 4);
 spotlight.target.position.set(0, 0, 0);
@@ -1097,7 +1107,7 @@ spotlight.shadow.mapSize.height = 2048;
 spotlight.add(new THREE.Mesh(
     new THREE.SphereGeometry(4, 32, 32),
     new THREE.MeshBasicMaterial({
-        color: 0xd15e06
+        color: 0xd15e06,
     })
 ));
 scene.add(spotlight);
@@ -1110,115 +1120,65 @@ scene.add(spotlight);
 drawButton();
 drawLamps();
 
+window.addEventListener("resize", () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+});
 window.addEventListener("click", (e) => {
     e.preventDefault();
 
-    if (cameraControls == false) {
-        mousePointer.x = ((window.innerWidth / 2) / window.innerWidth) * 2 - 1;
-        mousePointer.y = -((window.innerHeight / 2) / window.innerHeight) * 2 + 1;
-    } else {
-        mousePointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mousePointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
-    }
-
-    raycaster.setFromCamera(mousePointer, camera);
-    const intersects = raycaster.intersectObject(buttonMesh);
-
-    if (intersects.length > 0) {
-        const buttonID = intersects[0].instanceId;
-
-        if (buttonID == 0) {
-            if (lampsVisible[0] == true) {
-                lampsVisible[0] = false;
-                pointLight1.intensity = 0;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            } else {
-                lampsVisible[0] = true;
-                pointLight1.intensity = lightIntensity;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            }
-        } else if (buttonID == 1) {
-            if (lampsVisible[1] == true) {
-                lampsVisible[1] = false;
-                pointLight2.intensity = 0;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            } else {
-                lampsVisible[1] = true;
-                pointLight2.intensity = lightIntensity;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            }
-        } else if (buttonID == 2) {
-            if (lampsVisible[2] == true) {
-                lampsVisible[2] = false;
-                pointLight3.intensity = 0;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            } else {
-                lampsVisible[2] = true;
-                pointLight3.intensity = lightIntensity;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            }
-        } else if (buttonID == 3) {
-            if (lampsVisible[3] == true) {
-                lampsVisible[3] = false;
-                pointLight4.intensity = 0;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            } else {
-                lampsVisible[3] = true;
-                pointLight4.intensity = lightIntensity;
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
-
-                scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
-            }
-        } else if (buttonID == 4) {
-            if (cameraControls == true) {
-                cameraControls = false;
-                orbitControls.enabled = false;
-                fpsControls.lock();
-                dot.style.display = "block";
-                detail.innerHTML = controlsCommand[0] + "\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3];
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
-            } else {
-                cameraControls = true;
-                orbitControls.enabled = true;
-                fpsControls.unlock();
-                dot.removeAttribute("style");
-                detail.innerHTML = controlsCommand[4] + "\r\n" + controlsCommand[5] + "\r\n" + controlsCommand[6] + "\r\n" + controlsCommand[7];
-                buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
-            }
+    if (startWebGL) {
+        if (cameraControls == false) {
+            mousePointer.x = ((window.innerWidth / 2) / window.innerWidth) * 2 - 1;
+            mousePointer.y = -((window.innerHeight / 2) / window.innerHeight) * 2 + 1;
+        } else {
+            mousePointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mousePointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
         }
 
-        buttonMesh.instanceColor.needsUpdate = true;
-        lampsMesh.instanceMatrix.needsUpdate = true;
+        raycaster.setFromCamera(mousePointer, camera);
+        const intersects = raycaster.intersectObject(buttonMesh);
+
+        if (intersects.length > 0) {
+            const buttonID = intersects[0].instanceId;
+
+            if (buttonID >= 0 && buttonID <= 3) {
+                if (lampsVisible[buttonID] == true) {
+                    pointLightGroup.children[buttonID].intensity = 0;
+                    buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+                    scaleLamps.position.set(lanternPosition[buttonID][0], lanternPosition[buttonID][1], lanternPosition[buttonID][2]);
+                } else {
+                    pointLightGroup.children[buttonID].intensity = lightIntensity;
+                    buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+                    scaleLamps.position.set(lanternPosition[buttonID][0], clippedHeightPointLight, lanternPosition[buttonID][2]);
+                }
+
+                lampsVisible[buttonID] = !lampsVisible[buttonID];
+                scaleLamps.updateMatrix();
+                lampsMesh.setMatrixAt(buttonID, scaleLamps.matrix);
+            } else {
+                if (cameraControls == true) {
+                    fpsControls.lock();
+                    dot.style.display = "block";
+                    detail.innerHTML = "<u>" + controlsCommand[0] + "</u>\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3] + "\r\n" + controlsCommand[4];
+                    buttonMesh.setColorAt(buttonID, buttonColor.setHex(0x00ff00));
+                } else {
+                    orbitControls.target.set(0, 4.15, -5.25);
+                    console.log(orbitControls);
+                    fpsControls.unlock();
+                    dot.removeAttribute("style");
+                    detail.innerHTML = "<u>" + controlsCommand[5] + "</u>\r\n" + controlsCommand[6] + "\r\n" + controlsCommand[7] + "\r\n" + controlsCommand[8] + "\r\n" + controlsCommand[9];
+                    buttonMesh.setColorAt(buttonID, buttonColor.setHex(0xff0000));
+                }
+
+                cameraControls = !cameraControls;
+                orbitControls.enabled = !orbitControls.enabled;
+            }
+
+            buttonMesh.instanceColor.needsUpdate = true;
+            lampsMesh.instanceMatrix.needsUpdate = true;
+        }
     }
 });
 document.body.addEventListener("keydown", (e) => {
@@ -1259,6 +1219,51 @@ document.body.addEventListener("keyup", (e) => {
         case 68: // D
             moveRight = false;
             break;
+    }
+}, false);
+document.body.addEventListener("keypress", (e) => {
+    if (e.key == "T" || e.key == "t") {
+        if (hideOverlay[0] == false && hideOverlay[1] == false && hideOverlay[2] == false) {
+            document.getElementById("fpsGraph").setAttribute("class", "hideFPS");
+            document.getElementById("rendererStats").style.display = "none";
+            document.getElementById("controlsDetail").style.display = "none";
+
+            hideOverlay[0] = true;
+            hideOverlay[1] = true;
+            hideOverlay[2] = true;
+        } else {
+            document.getElementById("fpsGraph").removeAttribute("class");
+            document.getElementById("rendererStats").removeAttribute("style");
+            document.getElementById("controlsDetail").removeAttribute("style");
+
+            hideOverlay[0] = false;
+            hideOverlay[1] = false;
+            hideOverlay[2] = false;
+        }
+    } else if (e.key == "1") {
+        if (hideOverlay[0] == true) {
+            document.getElementById("fpsGraph").removeAttribute("class");
+        } else {
+            document.getElementById("fpsGraph").setAttribute("class", "hideFPS");
+        }
+
+        hideOverlay[0] = !hideOverlay[0];
+    } else if (e.key == "2") {
+        if (hideOverlay[1] == true) {
+            document.getElementById("rendererStats").removeAttribute("style");
+        } else {
+            document.getElementById("rendererStats").style.display = "none";
+        }
+
+        hideOverlay[1] = !hideOverlay[1];
+    } else if (e.key == "3") {
+        if (hideOverlay[2] == true) {
+            document.getElementById("controlsDetail").removeAttribute("style");
+        } else {
+            document.getElementById("controlsDetail").style.display = "none";
+        }
+
+        hideOverlay[2] = !hideOverlay[2];
     }
 }, false);
 
@@ -1313,58 +1318,26 @@ function animateScene() {
         if (fogRedColor == 0 && fogGreenColor == 0 && fogBlueColor == 0) {
             ctrDay = 1;
 
-            if (lampsVisible[0] == true) {
-                pointLight1.intensity = 0;
-                scaleLamps.position.set(lanternPosition[0][0], lanternPosition[0][1], lanternPosition[0][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(0, scaleLamps.matrix);
-            }
-            if (lampsVisible[1] == true) {
-                pointLight2.intensity = 0;
-                scaleLamps.position.set(lanternPosition[1][0], lanternPosition[1][1], lanternPosition[1][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(1, scaleLamps.matrix);
-            }
-            if (lampsVisible[2] == true) {
-                pointLight3.intensity = 0;
-                scaleLamps.position.set(lanternPosition[2][0], lanternPosition[2][1], lanternPosition[2][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(2, scaleLamps.matrix);
-            }
-            if (lampsVisible[3] == true) {
-                pointLight4.intensity = 0;
-                scaleLamps.position.set(lanternPosition[3][0], lanternPosition[3][1], lanternPosition[3][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(3, scaleLamps.matrix);
+            for (let i = 0; i < lampsVisible.length; i++) {
+                if (lampsVisible[i] == true) {
+                    pointLightGroup.children[i].intensity = 0;
+                    scaleLamps.position.set(lanternPosition[i][0], lanternPosition[i][1], lanternPosition[i][2]);
+                    scaleLamps.updateMatrix();
+                    lampsMesh.setMatrixAt(i, scaleLamps.matrix);
+                }
             }
 
             lampsMesh.instanceMatrix.needsUpdate = true;
         } else if (fogRedColor == 216 && fogGreenColor == 183 && fogBlueColor == 140) {
             ctrDay = 0;
 
-            if (lampsVisible[0] == true) {
-                pointLight1.intensity = 1;
-                scaleLamps.position.set(lanternPosition[0][0], clippedHeightPointLight, lanternPosition[0][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(0, scaleLamps.matrix);
-            }
-            if (lampsVisible[1] == true) {
-                pointLight2.intensity = 1;
-                scaleLamps.position.set(lanternPosition[1][0], clippedHeightPointLight, lanternPosition[1][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(1, scaleLamps.matrix);
-            }
-            if (lampsVisible[2] == true) {
-                pointLight3.intensity = 1;
-                scaleLamps.position.set(lanternPosition[2][0], clippedHeightPointLight, lanternPosition[2][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(2, scaleLamps.matrix);
-            }
-            if (lampsVisible[3] == true) {
-                pointLight4.intensity = 1;
-                scaleLamps.position.set(lanternPosition[3][0], clippedHeightPointLight, lanternPosition[3][2]);
-                scaleLamps.updateMatrix();
-                lampsMesh.setMatrixAt(3, scaleLamps.matrix);
+            for (let i = 0; i < lampsVisible.length; i++) {
+                if (lampsVisible[i] == true) {
+                    pointLightGroup.children[i].intensity = lightIntensity;
+                    scaleLamps.position.set(lanternPosition[i][0], clippedHeightPointLight, lanternPosition[i][2]);
+                    scaleLamps.updateMatrix();
+                    lampsMesh.setMatrixAt(i, scaleLamps.matrix);
+                }
             }
 
             lampsMesh.instanceMatrix.needsUpdate = true;
@@ -1402,7 +1375,7 @@ function animateScene() {
     spotlight.target.position.set(0, 0, 0);
     // orbitControls.update();
 
-    // Montage
+    // Montage Rotation
     // scene.rotation.y += 0.005;
 
     requestAnimationFrame(animateScene);

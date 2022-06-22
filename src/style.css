@@ -23,13 +23,36 @@ body {
     overflow: hidden;
 }
 
-#rendererStats {
+#loading {
+    background-color: #23262e;
+    color: #fff;
     cursor: pointer;
-    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: auto;
     position: absolute;
+    top: 0;
     bottom: 0;
     left: 0;
-    min-width: 10vw;
+    right: 0;
+    opacity: 1;
+    transition: 1.0s ease opacity;
+    width: 100%;
+    height: 100%;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    z-index: 99;
+}
+
+#loadingText {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 75%;
+    height: 75%;
 }
 
 #pointerLockOverlay {
@@ -46,7 +69,26 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
     z-index: 1;
+}
+
+#fpsGraph {
+    z-index: 0 !important;
+}
+
+#rendererStats {
+    cursor: pointer;
+    opacity: 0.8;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    min-width: 10vw;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
 #controlsDetail {
@@ -56,12 +98,15 @@ body {
     opacity: 0.8;
     display: block;
     line-height: 22px;
-    padding: 8px 12px;
+    padding: 8px 24px 8px 12px;
     white-space: pre;
     position: absolute;
     top: 0;
     right: 0;
     min-width: 14vw;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
 #redLaserSight {
@@ -76,4 +121,8 @@ body {
     right: 0;
     width: 6px;
     height: 6px;
+}
+
+.hideFPS {
+    display: none !important;
 }
