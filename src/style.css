@@ -116,11 +116,11 @@ body {
     opacity: 0.8;
     display: block;
     line-height: 22px;
-    padding: 8px 24px 8px 12px;
+    padding: 8px 12px;
     white-space: pre;
     position: absolute;
     left: 50%;
-    bottom: 0px;
+    bottom: 0;
     transform: translate(-50%, 0%);
     min-width: 14vw;
     -webkit-user-select: none;

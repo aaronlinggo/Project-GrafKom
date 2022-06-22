@@ -65,14 +65,14 @@ detail.id = "controlsDetail";
 detail.innerHTML = "<u>" + controlsCommand[0] + "</u>\r\n" + controlsCommand[1] + "\r\n" + controlsCommand[2] + "\r\n" + controlsCommand[3] + "\r\n" + controlsCommand[4];
 document.body.appendChild(detail);
 
+const keyToggle = document.createElement("div");
+keyToggle.id = "keyToggle";
+keyToggle.innerHTML = "Press 1: Show/Hide FPS | Press 2: Show/Hide Debugger | Press 3: Show/Hide Detail | Press T: Show/Hide All";
+document.body.appendChild(keyToggle);
+
 const dot = document.createElement("div");
 dot.id = "redLaserSight";
 document.body.appendChild(dot);
-
-const keyToggle = document.createElement("div");
-keyToggle.id = "keyToggle";
-keyToggle.innerHTML = "Press 1 : Show/Hide FPS | Press 2 : Show/Hide Debugger | Press 3 : Show/Hide Detail |  Press T : Show/Hide All";
-document.body.appendChild(keyToggle);
 
 // World Setup
 const borderRadius = 60;
